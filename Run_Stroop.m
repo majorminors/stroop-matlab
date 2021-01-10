@@ -175,32 +175,7 @@ end; clear i stim tstim;
 
 fprintf('defining trials for %s\n', mfilename);
 
-% get training stimuli only from the stimuli array
-count = 0;
-for i = 1:numel(p.stimuli(:,1))
-    if any(strcmp(p.stimuli{i,1},p.colours))
-        count = count+1;
-        p.training_stimuli{count,1} = p.stimuli{i,1};
-        p.training_stimuli{count,2} = p.stimuli{i,2};
-        p.training_stimuli{count,3} = 'colour';
-        p.stimuli{i,:} = [];
-    elseif any(strcmp(p.stimuli{i,1},'line'))
-        count = count+1;
-        p.training_stimuli{count,1} = p.stimuli{i,1};
-        p.training_stimuli{count,2} = p.stimuli{i,2};
-        p.training_stimuli{count,3} = 'line';
-        p.stimuli{i,:} = [];
-    end
-end; clear i count;
 
-for i = p.colours
-    for ii = p.sizes
-        for iii = p.falsefonts
-            
-            % loop through trial types
-        end
-    end
-end; clear i ii iii;
 
 %% exp start
 
