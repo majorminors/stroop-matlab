@@ -133,7 +133,7 @@ end % end response loop
 
 fprintf('defining stimuli params for %s\n', mfilename);
 
-% read in stimuli files for the cue
+% read in stimuli files for the cue and put together a stimulus matrix
 t.stimuli = dir(fullfile(stimdir,'*.png')); % get the file info
 i = 0;
 stim = 0;
@@ -164,40 +164,51 @@ while i < numel(t.stimuli) % loop through the files
         p.training_stimuli{tstim,2} = imread(fullfile(stimdir, t.filename)); % read in the image
         if strcmp(t.this_stim,'line')
             p.training_stimuli{tstim,3} = 'line';
+        else
+            p.training_stimuli{tstim,3} = 'colour';
+        end
         p.training_stimuli{tstim,4} = 'training';
     end
-end; clear i stim tstim;
+end; clear i stim tstim t.front t.back t.this_stim t.filename;
 
 %% define trials
 
 fprintf('defining trials for %s\n', mfilename);
 
-% get training stimuli only from the stimuli array
-count = 0;
-for i = 1:numel(p.stimuli(:,1))
-    if any(strcmp(p.stimuli{i,1},p.colours))
-        count = count+1;
-        p.training_stimuli{count,1} = p.stimuli{i,1};
-        p.training_stimuli{count,2} = p.stimuli{i,2};
-        p.training_stimuli{count,3} = 'colour';
-        p.stimuli{i,:} = [];
-    elseif any(strcmp(p.stimuli{i,1},'line'))
-        count = count+1;
-        p.training_stimuli{count,1} = p.stimuli{i,1};
-        p.training_stimuli{count,2} = p.stimuli{i,2};
-        p.training_stimuli{count,3} = 'line';
-        p.stimuli{i,:} = [];
-    end
-end; clear i count;
+% trial matrix
+%   1) stimulus index
+%   2) congruency (1 or 0)
 
-for i = p.colours
-    for ii = p.sizes
-        for iii = p.falsefonts
-            
-            % loop through trial types
-        end
+p.trial_mat = [];
+countf = 1;
+countff = 1;
+for i = 1:numel(p.stimuli(:,1))
+    if strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'congruent')
+        p.trial_mat(countf,1,1) = i;
+        p.trial_mat(countf,2,1) = 1; % congruent
+        countf=countf+1;
+    elseif strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'incongruent')
+        p.trial_mat(countf,1,1) = i;
+        p.trial_mat(countf,2,1) = 0; % incongruent
+        countf=countf+1;
+    elseif strcmp(p.stimuli{i,3},'falsefont') && strcmp(p.stimuli{i,4},'congruent')
+        p.trial_mat(countff,1,2) = i;
+        p.trial_mat(countff,2,2) = 1; % congruent
+        countff=countff+1;
+    elseif strcmp(p.stimuli{i,3},'falsefont') && strcmp(p.stimuli{i,4},'incongruent')
+        p.trial_mat(countff,1,2) = i;
+        p.trial_mat(countff,2,2) = 0; % incongruent
+        countff=countff+1;
     end
-end; clear i ii iii;
+end; clear i countf countff;
+% duplicate congruent trials
+t.idx1 = find(p.trial_mat(:,2,1)==1);
+t.idx2 = find(p.trial_mat(:,2,2)==1);
+t.add_trials(:,:,1) = p.trial_mat(t.idx1,:,1);
+t.add_trials(:,:,2) = p.trial_mat(t.idx2,:,1);
+p.trial_mat = [p.trial_mat;t.add_trials]; clear t.add_trials t.idx1 t.idx2;
+
+
 
 %% exp start
 
