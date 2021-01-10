@@ -18,6 +18,9 @@ rootdir = pwd; % root directory - used to inform directory mappings
 p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests and sets number of trials and blocks to test values) - see '% test variables' below
 p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
+p.colours = {'red','blue','green'};
+p.sizes = {'short','medium','tall'};
+p.falsefonts = {'ffred','ffblue','ffgreen'};
 
 % directory mapping
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
@@ -87,12 +90,11 @@ fprintf('defining exp params for %s\n', mfilename);
 
 % define keys
 p.resp_keys = {'1','2','3'}; % only accepts three response options
-p.resp_coding.short = p.resp_keys{1};
-p.resp_coding.medium = p.resp_keys{2};
-p.resp_coding.tall = p.resp_keys{3};
-p.resp_coding.red = p.resp_keys{1};
-p.resp_coding.blue = p.resp_keys{2};
-p.resp_coding.green = p.resp_keys{3};
+for i = 1:length(p.resp_keys)
+    p.resp_coding{1,i} = p.resp_keys{i};
+    p.resp_coding{2,i} = p.colours(i);
+    p.resp_coding{3,i} = p.sizes(i);
+end; clear i;
 p.quitkey = {'q'};
 
 % define display info
@@ -131,15 +133,35 @@ end % end response loop
 
 fprintf('defining stimuli params for %s\n', mfilename);
 
-t.colours = ['red','blue','green'];
-
 % read in stimuli files for the cue
-t.stimuli = dir(fullfile(stimdir,'*.svg'));
+t.stimuli = dir(fullfile(stimdir,'*.png'));
 for i = 1:numel(t.stimuli)
-    t.filename = t.stimuli(1).name;
-    p.stimuli{i,1} = imread(fullfile(stimdir, t.filename));
-    p.stimuli{i,2} = erase(t.filename,'.svg');
-end
+    t.filename = t.stimuli(i).name;
+    p.stimuli{i,1} = erase(t.filename,'.png');
+    p.stimuli{i,2} = imread(fullfile(stimdir, t.filename));
+end; clear i;
+
+%% define trials
+
+fprintf('defining trials for %s\n', mfilename);
+
+% get colour training stimuli
+count = 0;
+for i = 1:numel(p.stimuli(:,1))
+    if any(strcmp(p.stimuli{i,1},p.colours))
+        count = count+1;
+        p.colour_training{count,1} = p.stimuli{i,1};
+        p.colour_training{count,2} = p.stimuli{i,2};
+    end
+end; clear i count;
+
+for i = p.colours
+    for ii = p.sizes
+        for iii = p.falsefonts
+            % loop through trial types
+        end
+    end
+end; clear i ii iii;
 
 %% exp start
 
@@ -164,7 +186,7 @@ try
     % fprintf('trial %u of %u\n',i,p.trial_num); % report trial number to command window
     
     % set up a queue to collect response info
-    t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.quitkey)]; % define the keys the queue cares about
+    t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
     t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
     t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
     KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
