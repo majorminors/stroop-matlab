@@ -134,44 +134,66 @@ end % end response loop
 fprintf('defining stimuli params for %s\n', mfilename);
 
 % read in stimuli files for the cue
-t.stimuli = dir(fullfile(stimdir,'*.png')); % get the filenames
-for i = 1:numel(t.stimuli) % loop through the files
-    t.filename = t.stimuli(i).name; % 
-    p.stimuli{i,1} = erase(t.filename,'.png');
-    p.stimuli{i,2} = imread(fullfile(stimdir, t.filename));
-    if contains(p.stimuli{i,1},'-')
-        t.front = extractBefore(p.stimuli{i,1},'-');
-        t.back = extractAfter(p.stimuli{i,1},'-');
-        if startsWith(t.front,'ff')
+t.stimuli = dir(fullfile(stimdir,'*.png')); % get the file info
+i = 0;
+stim = 0;
+tstim = 0;
+while i < numel(t.stimuli) % loop through the files
+    i = i+1;
+    t.filename = t.stimuli(i).name; % get the filename
+    t.this_stim = erase(t.filename,'.png'); % get rid of the extension
+    if contains(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus)
+        stim = stim+1;
+        p.stimuli{stim,1} = t.this_stim; % add in the stimulus name
+        p.stimuli{stim,2} = imread(fullfile(stimdir, t.filename)); % read in the image
+        t.front = extractBefore(p.stimuli{stim,1},'-'); % get the front
+        t.back = extractAfter(p.stimuli{stim,1},'-'); % get the back
+        if startsWith(t.front,'ff') % remove the ff so we can compare
             t.front = erase(t.front,'ff');
+            p.stimuli{stim,3} = 'falsefont';
+        else p.stimuli{stim,3} = 'font';
         end
-        if strcmp(t.front,t.back)
-            p.stimuli{i,3} = 'congruent';
+        if strcmp(t.front,t.back) % compare front and back
+            p.stimuli{stim,4} = 'congruent';
         else
-            p.stimuli{i,3} = 'incongruent';
+            p.stimuli{stim,4} = 'incongruent';
         end
     else
-         p.stimuli{i,3} = 'training';
+        tstim = tstim+1;
+        p.training_stimuli{tstim,1} = t.this_stim;
+        p.training_stimuli{tstim,2} = imread(fullfile(stimdir, t.filename)); % read in the image
+        if strcmp(t.this_stim,'line')
+            p.training_stimuli{tstim,3} = 'line';
+        p.training_stimuli{tstim,4} = 'training';
     end
-end; clear i;
+end; clear i stim tstim;
 
 %% define trials
 
 fprintf('defining trials for %s\n', mfilename);
 
-% get colour training stimuli
+% get training stimuli only from the stimuli array
 count = 0;
 for i = 1:numel(p.stimuli(:,1))
     if any(strcmp(p.stimuli{i,1},p.colours))
         count = count+1;
-        p.colour_training{count,1} = p.stimuli{i,1};
-        p.colour_training{count,2} = p.stimuli{i,2};
+        p.training_stimuli{count,1} = p.stimuli{i,1};
+        p.training_stimuli{count,2} = p.stimuli{i,2};
+        p.training_stimuli{count,3} = 'colour';
+        p.stimuli{i,:} = [];
+    elseif any(strcmp(p.stimuli{i,1},'line'))
+        count = count+1;
+        p.training_stimuli{count,1} = p.stimuli{i,1};
+        p.training_stimuli{count,2} = p.stimuli{i,2};
+        p.training_stimuli{count,3} = 'line';
+        p.stimuli{i,:} = [];
     end
 end; clear i count;
 
 for i = p.colours
     for ii = p.sizes
         for iii = p.falsefonts
+            
             % loop through trial types
         end
     end
