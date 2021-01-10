@@ -134,11 +134,25 @@ end % end response loop
 fprintf('defining stimuli params for %s\n', mfilename);
 
 % read in stimuli files for the cue
-t.stimuli = dir(fullfile(stimdir,'*.png'));
-for i = 1:numel(t.stimuli)
-    t.filename = t.stimuli(i).name;
-    p.stimuli{i,1} = erase(t.filename,'.png');
-    p.stimuli{i,2} = imread(fullfile(stimdir, t.filename));
+t.stimuli = dir(fullfile(stimdir,'*.png')); % get the file info
+for i = 1:numel(t.stimuli) % loop through the files
+    t.filename = t.stimuli(i).name; % get the filename
+    p.stimuli{i,1} = erase(t.filename,'.png'); % get rid of the extension
+    p.stimuli{i,2} = imread(fullfile(stimdir, t.filename)); % read in the image
+    if contains(p.stimuli{i,1},'-') % if there's a hyphen (i.e. not a training stimulus)
+        t.front = extractBefore(p.stimuli{i,1},'-'); % get the front
+        t.back = extractAfter(p.stimuli{i,1},'-'); % get the back
+        if startsWith(t.front,'ff') % remove the ff so we can compare
+            t.front = erase(t.front,'ff');
+        end
+        if strcmp(t.front,t.back) % compare front and back
+            p.stimuli{i,3} = 'congruent';
+        else
+            p.stimuli{i,3} = 'incongruent';
+        end
+    else
+         p.stimuli{i,3} = 'training';
+    end
 end; clear i;
 
 %% define trials
