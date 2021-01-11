@@ -213,10 +213,12 @@ p.trial_mat = [p.trial_mat;tmp]; clear tmp idx1 idx2;
 % duplicate three times for the three sizes
 p.trial_mat = [p.trial_mat;p.trial_mat;p.trial_mat];
 % add sizes
-p.trial_mat(:,3,1) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[length(p.trial_mat(:,1)),1]);
-p.trial_mat(:,3,2) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[length(p.trial_mat(:,1)),1]);
+p.trial_mat(:,3,1) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
+p.trial_mat(:,3,2) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
 
-% repmat p.trial_mat 3x for each size
+% training matrix of equiv size for colour only and size only trials
+p.trn_mat(:,2) = p.trial_mat(:,3,1);
+p.trn_mat(:,1) = reshape(repmat(1:3,length(p.trn_mat(:,1))/3/3,3),[],1);
 
 %% exp start
 
