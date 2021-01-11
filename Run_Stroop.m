@@ -1,6 +1,6 @@
 %% Matching motion coherence to direction cue in MEG
 % Dorian Minors
-% Created: JUN19
+% Created: JAN21
 % Last Edit: JAN21
 %% set up
 
