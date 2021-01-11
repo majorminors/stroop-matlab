@@ -18,9 +18,11 @@ rootdir = pwd; % root directory - used to inform directory mappings
 p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests and sets number of trials and blocks to test values) - see '% test variables' below
 p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
-p.colours = {'red','blue','green'};
-p.sizes = {'short','medium','tall'};
-p.falsefonts = {'ffred','ffblue','ffgreen'};
+p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
+p.sizes = {'short','medium','tall'}; % used to create response coding
+p.falsefonts = {'ffred','ffblue','ffgreen'}; % don't use this currently - just dealing with the ff prefix in the stimulus matrix code directly
+p.visual_angles = [10,11,12]; % visual angles of the stimulus expressed as a decimal - determines sizes
+% i'm going to hardcode four tasks to get this done quickly - see trial params
 
 % directory mapping
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
@@ -102,7 +104,6 @@ p.bg_colour = [0 0 0];
 p.text_colour = [255 255 255]; % colour of instructional text
 p.text_size = 40; % size of text
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
-p.visual_angle = 10; % visual angle of the stimulus expressed as a decimal - determines size
 
 % timing info
 p.iti_time = 0.3; % inter trial inteval time
@@ -180,45 +181,74 @@ fprintf('defining trials for %s\n', mfilename);
 
 % trial matrix
 %   1) stimulus index
-%   2) congruency (1 or 0)
-
+%   2) size info (1, 2, or 3)
+%   3) congruency (1 or 0) - we use this to double the congruent trials
 p.trial_mat = [];
 countf = 1;
 countff = 1;
 for i = 1:numel(p.stimuli(:,1))
     if strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'congruent')
         p.trial_mat(countf,1,1) = i;
-        p.trial_mat(countf,2,1) = 1; % congruent
+        p.trial_mat(countf,3,1) = 1; % congruent
         countf=countf+1;
     elseif strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'incongruent')
         p.trial_mat(countf,1,1) = i;
-        p.trial_mat(countf,2,1) = 0; % incongruent
+        p.trial_mat(countf,3,1) = 0; % incongruent
         countf=countf+1;
     elseif strcmp(p.stimuli{i,3},'falsefont') && strcmp(p.stimuli{i,4},'congruent')
         p.trial_mat(countff,1,2) = i;
-        p.trial_mat(countff,2,2) = 1; % congruent
+        p.trial_mat(countff,3,2) = 1; % congruent
         countff=countff+1;
     elseif strcmp(p.stimuli{i,3},'falsefont') && strcmp(p.stimuli{i,4},'incongruent')
         p.trial_mat(countff,1,2) = i;
-        p.trial_mat(countff,2,2) = 0; % incongruent
+        p.trial_mat(countff,3,2) = 0; % incongruent
         countff=countff+1;
     end
 end; clear i countf countff;
 % duplicate congruent trials
-idx1 = find(p.trial_mat(:,2,1)==1);
-idx2 = find(p.trial_mat(:,2,2)==1);
+idx1 = find(p.trial_mat(:,3,1)==1);
+idx2 = find(p.trial_mat(:,3,2)==1);
 tmp(:,:,1) = p.trial_mat(idx1,:,1);
 tmp(:,:,2) = p.trial_mat(idx2,:,2);
 p.trial_mat = [p.trial_mat;tmp]; clear tmp idx1 idx2;
 % duplicate three times for the three sizes
 p.trial_mat = [p.trial_mat;p.trial_mat;p.trial_mat];
 % add sizes
-p.trial_mat(:,3,1) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
-p.trial_mat(:,3,2) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
+p.trial_mat(:,2,1) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
+p.trial_mat(:,2,2) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
 
 % training matrix of equiv size for colour only and size only trials
+%   1) colour
+%   2) size
 p.trn_mat(:,2) = p.trial_mat(:,3,1);
 p.trn_mat(:,1) = reshape(repmat(1:3,length(p.trn_mat(:,1))/3/3,3),[],1);
+
+% permute an order
+p.permutations = cell2mat(perms(1:4);
+% select permutation based on ID
+if d.participant_id >= length(p.permutations)
+    t.this_permutation = mod(d.participant_id,length(p.permutations));
+else
+    t.this_permutation = d.participant_id;
+end
+p.permutation = p.permutations(t.this_permutation,:);
+
+for i = 1:length(p.permutation)
+    if p.permutation == 1 || 2
+        t.trial_mat = p.trial_mat(:,:,1);
+        t.trial_font = 'font';
+    elseif p.permutation == 3 || 4
+        t.trial_mat = p.trial_mat(:,:,2);
+        t.trial_font = 'falsefont';
+    end
+    if p.permutataion == 1 || 3
+        t.trial_feature = 'colour';
+    elseif p.permutataion == 2 || 4
+        t.trial_feature = 'size';
+    end
+    p.procedure(:,:,i) = t.trial_mat;
+    p.permutationcode(i,:) = {t.trial_font,t.trial_feature};
+end
 
 %% exp start
 
@@ -234,90 +264,99 @@ try
     Screen('TextSize', p.win, p.text_size); % set the text size
     % then need some info based on the screen for later
     %p.frame_rate = 1/Screen('GetFlipInterval', p.win); % is Hz
-    %p.resolution = p.rect([3,4]); % pull resolution info from p.rect - used to scale cue image and is passed to moving_dots to do the same
+    p.resolution = p.rect([3,4]); % pull resolution info from p.rect - used to scale cue image
     HideCursor;
     WaitSecs(0.5); % warm up
     
-    %% start trial
-    % will want a trial loop, can report trial with something like:
-    % fprintf('trial %u of %u\n',i,p.trial_num); % report trial number to command window
-    
-    % set up a queue to collect response info
-    t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
-    t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
-    t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
-    KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
-    KbQueueStart(); % starts delivering keypress info to the queue
-    
-    % make the texture and scale it
-    t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
-    [t.tex_size1, t.tex_size2, t.tex_size3] = size(t.stim_tex); % get size of texture
-    t.aspectratio = t.tex_size2/t.tex_size1; % get the aspect ratio of the image for scaling purposes
-    t.imageheight = angle2pix(p,p.visual_angle); % scale the height of the image using the desired visual angle
-    t.imagewidth = t.imageheight .* t.aspectratio; % get the scaled width, constrained by the aspect ratio of the image
-
-    % parameterise the rect to display cue in
-    t.imgrect = [0 0 t.imagewidth t.imageheight]; % make a scaled rect for the cue
-    t.rect = CenterRectOnPointd(t.imgrect,p.resolution(1,1)/2,p.resolution(1,2)/2); % offset it for the centre of the window
-
-    % iti
-    % might need some screen flipping here to go blank?
-    WaitSecs(p.iti_time)
-    
-    % then display cue
-    Screen('DrawTexture', p.win, t.stim_tex, [], t.rect); % draws the cue
-    d.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
-    WaitSecs(p.min_stim_time); % going to need to stop responding in this time, or code as zero
-    Screen('DrawTexture', p.win, t.stim_tex, [], t.rect); % redraws the cue
-    Screen('Flip', p.win);
-    WaitSecs(p.trial_duration); % wait for trial    
-
-    %% deal with response
-
-    % deal with keypress
-    [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
-    d.resp_key_name{block,i} = KbName(t.firstPress); % get the name of the key used to respond - needs to be squiggly brackets or it wont work for no response
-    d.resp_key_time(block,i) = sum(t.firstPress); % get the timing info of the key used to respond
-    d.rt(block,i) = d.resp_key_time(block,i) - d.dots_onset(block,i); % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
-    
-    % save the response key (as a code)
-    if cell2mat(d.resp_key_name(block,i)) == p.resp_keys{1}
-        d.resp_keycode(block,i) = 1; % code response 1 pressed
-    elseif cell2mat(d.resp_key_name(block,i)) == p.resp_keys{2}
-        d.resp_keycode(block,i) = 2; % code response 2 pressed
-    else
-        d.resp_keycode(block,i) = 0; % code invalid response
+    %% start procedure
+    for proc = 1:size(p.procedure,3)
+        fprintf('procedure %u of %u\n',proc,size(p.procedure,3)); % report trial number to command window
+        t.this_proc = p.procedure(:,:,proc);
+        
+        %% start trial
+        for trial = 1:size(t.this_proc,1)
+            fprintf('trial %u of %u\n',trial,size(t.this_proc,1)); % report trial number to command window
+            t.this_trial = t.this_proc(trial,:);
+            t.this_stim = t.this_trial(1);
+            t.this_size = t.this_trial(2);
+            
+            % set up a queue to collect response info
+            t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
+            t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
+            t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
+            KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
+            KbQueueStart(); % starts delivering keypress info to the queue
+            
+            % make the texture and scale it
+            t.stim_tex = Screen('MakeTexture', p.win, p.stimuli(t.this_stim,2));
+            [t.tex_size1, t.tex_size2, t.tex_size3] = size(t.stim_tex); % get size of texture
+            t.aspectratio = t.tex_size2/t.tex_size1; % get the aspect ratio of the image for scaling purposes
+            t.imageheight = angle2pix(p,p.visual_angles(t.this_size); % scale the height of the image using the desired visual angle
+            t.imagewidth = t.imageheight .* t.aspectratio; % get the scaled width, constrained by the aspect ratio of the image
+            
+            % parameterise the rect to display cue in
+            t.imgrect = [0 0 t.imagewidth t.imageheight]; % make a scaled rect for the cue
+            t.rect = CenterRectOnPointd(t.imgrect,p.resolution(1,1)/2,p.resolution(1,2)/2); % offset it for the centre of the window
+            
+            % iti
+            % might need some screen flipping here to go blank?
+            WaitSecs(p.iti_time)
+            
+            % then display cue
+            Screen('DrawTexture', p.win, t.stim_tex, [], t.rect); % draws the cue
+            t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
+            WaitSecs(p.trial_duration); % wait for trial
+            
+            %% deal with response
+            
+            % deal with keypress
+            [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
+            d.resp_key_name{block,i} = KbName(t.firstPress); % get the name of the key used to respond - needs to be squiggly brackets or it wont work for no response
+            d.resp_key_time(block,i) = sum(t.firstPress); % get the timing info of the key used to respond
+            d.rt(block,i) = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
+            
+            % save the response key (as a code)
+            if cell2mat(d.resp_key_name(block,i)) == p.resp_keys{1}
+                d.resp_keycode(block,i) = 1; % code response 1 pressed
+            elseif cell2mat(d.resp_key_name(block,i)) == p.resp_keys{2}
+                d.resp_keycode(block,i) = 2; % code response 2 pressed
+            else
+                d.resp_keycode(block,i) = 0; % code invalid response
+            end
+            
+            % score and create feedback variable e.g.
+            % score response
+            %             if strcmp(d.resp_key_name(block,i), d.correct_resp(block,i))
+            %                 d.correct(block,i) = 1; %correct trial
+            %                 t.feedback = 'correct';
+            %             elseif strcmp(d.resp_key_name(block,i), d.incorrect_resp(block,i))
+            %                 d.correct(block,i) = 0; %incorrect trial
+            %                 t.feedback = 'incorrect';
+            %             elseif strcmp(d.resp_key_name(block,i),p.quitkey)
+            %                 fclose('all');
+            %                 error('%s quit by user (p.quitkey pressed)\n', mfilename);
+            %             else
+            %                 d.correct(block,i) = -1; % nil response
+            %                 d.rt(block,i) = 0;
+            %                 t.feedback = 'no valid input';
+            %             end % end check correct
+            
+            % display some feedback if trialwise feedback on
+            if p.feedback_type == 1
+                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
+                Screen('Flip', p.win);
+                WaitSecs(p.feedback_time);
+                Screen('Flip', p.win);
+            end
+            
+            %% post trial cleanup
+            KbQueueRelease();
+            
+            % end trial
+        end
+        
+        % end procedure
     end
-    
-    % score and create feedback variable e.g.
-                % score response
-%             if strcmp(d.resp_key_name(block,i), d.correct_resp(block,i))
-%                 d.correct(block,i) = 1; %correct trial
-%                 t.feedback = 'correct';
-%             elseif strcmp(d.resp_key_name(block,i), d.incorrect_resp(block,i))
-%                 d.correct(block,i) = 0; %incorrect trial
-%                 t.feedback = 'incorrect';
-%             elseif strcmp(d.resp_key_name(block,i),p.quitkey)
-%                 fclose('all');
-%                 error('%s quit by user (p.quitkey pressed)\n', mfilename);
-%             else
-%                 d.correct(block,i) = -1; % nil response
-%                 d.rt(block,i) = 0;
-%                 t.feedback = 'no valid input';
-%             end % end check correct
-    
-    % display some feedback if trialwise feedback on
-    if p.feedback_type == 1
-        DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
-        Screen('Flip', p.win);
-        WaitSecs(p.feedback_time);
-        Screen('Flip', p.win);
-    end
-    
-    %% post trial cleanup
-    KbQueueRelease();
-    
-    % end trial here
     
     %% wrap up
     
@@ -333,7 +372,7 @@ try
     if p.MEG_enabled == 1; MEG.delete; end % stop MEG from limiting button presses
     clear block i ans; % clear specific indexes and stuff
     Screen('Close',p.win);
-       
+    
     fprintf('done running %s\n', mfilename);
     
 catch err
