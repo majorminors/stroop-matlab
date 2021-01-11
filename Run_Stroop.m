@@ -185,32 +185,27 @@ fprintf('defining trials for %s\n', mfilename);
 % trial matrix
 %   1) stimulus index
 %   2) size info (1, 2, or 3)
-%   3) congruency (1 or 0) - we use this to double the congruent trials
 p.trial_mat = [];
 countf = 1;
 countff = 1;
 for i = 1:numel(p.stimuli(:,1))
     if strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'congruent')
         p.trial_mat(countf,1,1) = i;
-        p.trial_mat(countf,3,1) = 1; % congruent
         countf=countf+1;
     elseif strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'incongruent')
         p.trial_mat(countf,1,1) = i;
-        p.trial_mat(countf,3,1) = 0; % incongruent
         countf=countf+1;
     elseif strcmp(p.stimuli{i,3},'falsefont') && strcmp(p.stimuli{i,4},'congruent')
         p.trial_mat(countff,1,2) = i;
-        p.trial_mat(countff,3,2) = 1; % congruent
         countff=countff+1;
     elseif strcmp(p.stimuli{i,3},'falsefont') && strcmp(p.stimuli{i,4},'incongruent')
         p.trial_mat(countff,1,2) = i;
-        p.trial_mat(countff,3,2) = 0; % incongruent
         countff=countff+1;
     end
 end; clear i countf countff;
 % duplicate congruent trials
-idx1 = find(p.trial_mat(:,3,1)==1);
-idx2 = find(p.trial_mat(:,3,2)==1);
+idx1 = find(strcmp(p.stimuli(p.trial_mat(:,1,1),4),'congruent'));
+idx2 = find(strcmp(p.stimuli(p.trial_mat(:,1,2),4),'congruent'));
 tmp(:,:,1) = p.trial_mat(idx1,:,1);
 tmp(:,:,2) = p.trial_mat(idx2,:,2);
 p.trial_mat = [p.trial_mat;tmp]; clear tmp idx1 idx2;
