@@ -231,21 +231,42 @@ else
 end
 d.permutation = p.permutations(t.this_permutation,:);
 
-for i = 1:length(d.permutation)
-    if d.permutation == 1 || 2
-        t.trial_mat = p.trial_mat(:,:,1);
-        t.trial_font = 'font';
-    elseif d.permutation == 3 || 4
-        t.trial_mat = p.trial_mat(:,:,2);
-        t.trial_font = 'falsefont';
-    end
-    if d.permutataion == 1 || 3
+% create a procedure based on the trial matrices and permutation
+t.size_counter = 0; % something to catch the first colour procedure
+t.colour_counter = 0; % something to catch the first size procedure
+t.perm_counter = 1; % something to index through the permutation
+t.proc_counter = 0; % something to index through the procedures
+t.proc_end = length(d.permutation); % something to end the while loop
+while t.proc_counter < t.proc_end
+    t.proc_counter = t.proc_counter+1;
+    if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 3
+        t.colour_counter = t.colour_counter+1;
         t.trial_feature = 'colour';
-    elseif d.permutataion == 2 || 4
+    elseif d.permutation(t.perm_counter) == 2 || d.permutation(t.perm_counter) == 4
+        t.size_counter = t.size_counter+1;
         t.trial_feature = 'size';
     end
-    d.procedure(:,:,i) = t.trial_mat;
-    d.permutationcode(i,:) = {t.trial_font,t.trial_feature};
+    if t.colour_counter == 1
+        t.trial_mat = p.trn_mat;
+        t.proc_end = t.proc_end+1;
+        t.trial_type = 'colour_training';
+    elseif t.size_counter == 1
+        t.trial_mat = p.trn_mat;
+        t.proc_end = t.proc_end+1;
+        t.trial_type = 'size_training';
+    else
+        if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 2
+            t.perm_counter = t.perm_counter+1;
+            t.trial_mat = p.trial_mat(:,:,1);
+            t.trial_type = 'font';
+        elseif d.permutation(t.perm_counter) == 3 || d.permutation(t.perm_counter) == 4
+            t.perm_counter = t.perm_counter+1;
+            t.trial_mat = p.trial_mat(:,:,2);
+            t.trial_type = 'falsefont';
+        end
+    end
+    d.procedure(:,:,t.proc_counter) = t.trial_mat;
+    d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type};
 end
 
 %% exp start
@@ -278,7 +299,7 @@ try
     for proc = 1:size(d.procedure,3)
         fprintf('procedure %u of %u\n',proc,size(d.procedure,3)); % report trial number to command window
         t.this_proc = d.procedure(:,:,proc);
-        t.this_feature = p.permutationcode{proc,2);
+        t.this_feature = d.procedure_code(proc,1);
         
         %% start trial
         for trial = 1:size(t.this_proc,1)
