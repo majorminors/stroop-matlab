@@ -158,6 +158,8 @@ while i < numel(t.stimuli) % loop through the files
         else
             p.stimuli{stim,4} = 'incongruent';
         end
+        p.stimuli{stim,5} = t.back;
+        p.stimuli{stim,6} = t.front;
     else
         tstim = tstim+1;
         p.training_stimuli{tstim,1} = t.this_stim;
@@ -168,6 +170,7 @@ while i < numel(t.stimuli) % loop through the files
             p.training_stimuli{tstim,3} = 'colour';
         end
         p.training_stimuli{tstim,4} = 'training';
+        p.training_stimuli{tstim,5} = t.this_stim;
     end
 end; clear i stim tstim t.front t.back t.this_stim t.filename;
 
@@ -202,13 +205,18 @@ for i = 1:numel(p.stimuli(:,1))
     end
 end; clear i countf countff;
 % duplicate congruent trials
-t.idx1 = find(p.trial_mat(:,2,1)==1);
-t.idx2 = find(p.trial_mat(:,2,2)==1);
-t.add_trials(:,:,1) = p.trial_mat(t.idx1,:,1);
-t.add_trials(:,:,2) = p.trial_mat(t.idx2,:,1);
-p.trial_mat = [p.trial_mat;t.add_trials]; clear t.add_trials t.idx1 t.idx2;
+idx1 = find(p.trial_mat(:,2,1)==1);
+idx2 = find(p.trial_mat(:,2,2)==1);
+tmp(:,:,1) = p.trial_mat(idx1,:,1);
+tmp(:,:,2) = p.trial_mat(idx2,:,2);
+p.trial_mat = [p.trial_mat;tmp]; clear tmp idx1 idx2;
+% duplicate three times for the three sizes
+p.trial_mat = [p.trial_mat;p.trial_mat;p.trial_mat];
+% add sizes
+p.trial_mat(:,3,1) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[length(p.trial_mat(:,1)),1]);
+p.trial_mat(:,3,2) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[length(p.trial_mat(:,1)),1]);
 
-
+% repmat p.trial_mat 3x for each size
 
 %% exp start
 
