@@ -266,6 +266,7 @@ while t.proc_counter < t.proc_end
         end
     end
     d.procedure(:,:,t.proc_counter) = t.trial_mat;
+    Shuffle(d.procedure,[2]); % shuffle rows independently on each page
     d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type};
 end
 
