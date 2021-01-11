@@ -216,13 +216,13 @@ p.trial_mat(:,2,1) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
 p.trial_mat(:,2,2) = reshape(repmat(1:3,length(p.trial_mat(:,1))/3,1),[],1);
 
 % training matrix of equiv size for colour only and size only trials
-%   1) colour
+%   1) colour index
 %   2) size
-p.trn_mat(:,2) = p.trial_mat(:,3,1);
-p.trn_mat(:,1) = reshape(repmat(1:3,length(p.trn_mat(:,1))/3/3,3),[],1);
+p.trn_mat(:,1) = p.trial_mat(:,2,1);
+p.trn_mat(:,2) = reshape(repmat(1:3,length(p.trn_mat(:,1))/3/3,3),[],1);
 
 % permute an order
-p.permutations = cell2mat(perms(1:4);
+p.permutations = perms(1:4);
 % select permutation based on ID
 if d.participant_id >= length(p.permutations)
     t.this_permutation = mod(d.participant_id,length(p.permutations));
@@ -254,6 +254,11 @@ fprintf('running experiment %s\n', mfilename);
 %% define results matrix
 t.result_counter = 0;
 d.results = []; % initialise a results matrix
+%% define some training stuff
+d.training_results = [];
+t.training_result_counter = 0;
+t.train_size = 0;
+t.train_colour = 0;
 
 try
     % open screen
