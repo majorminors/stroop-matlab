@@ -309,12 +309,22 @@ try
         fprintf('procedure %u of %u\n',proc,size(d.procedure,3)); % report trial number to command window
         t.this_proc = d.procedure(:,:,proc);
         t.this_feature = d.procedure_code(proc,1);
+        if contains(d.procedure_code(proc,2),'training')
+            t.training = 1;
+        else
+            t.trianing = 0;
+        end
         
         %% start trial
         for trial = 1:size(t.this_proc,1)
             fprintf('trial %u of %u\n',trial,size(t.this_proc,1)); % report trial number to command window
             t.this_trial = t.this_proc(trial,:);
             t.this_stim_idx = t.this_trial(1);
+            if t.training
+                t.stimulus = cell2mat(p.training_stimuli(t.this_stim_idx,2));
+            else
+                t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2));
+            end
             t.this_size = t.this_trial(2);
             t.result_counter = t.result_counter+1; % iterate results counter
             
@@ -326,7 +336,7 @@ try
             KbQueueStart(); % starts delivering keypress info to the queue
             
             % make the texture and scale it
-            t.stim_tex = Screen('MakeTexture', p.win, cell2mat(p.stimuli(t.this_stim_idx,2)));
+            t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
             [t.tex_size1, t.tex_size2, t.tex_size3] = size(t.stim_tex); % get size of texture
             t.aspectratio = t.tex_size2/t.tex_size1; % get the aspect ratio of the image for scaling purposes
             t.imageheight = angle2pix(p,p.visual_angles(t.this_size)); % scale the height of the image using the desired visual angle
@@ -338,7 +348,7 @@ try
             
             % iti
             % we want a fixation? or at least a blank screen?
-            WaitSecs(p.iti_time)
+            WaitSecs(p.iti_time);
             
             % then display cue
             Screen('DrawTexture', p.win, t.stim_tex, [], t.rect); % draws the cue
