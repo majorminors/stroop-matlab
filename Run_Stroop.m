@@ -29,15 +29,11 @@ p.falsefonts = {'ffred','ffblue','ffgreen'}; % don't use this currently - just d
 % i'm going to hardcode four tasks to get this done quickly - see trial params
 
 % directory mapping
-if ispc
-    setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); % make sure psychtoolbox has all it's stuff on pc
-end
+if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
 stimdir = fullfile(rootdir, 'lib', 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
-if ~exist(datadir,'dir')
-    mkdir(datadir);
-end
+if ~exist(datadir,'dir'); mkdir(datadir); end
 
 % test variables
 if p.testing_enabled == 1
@@ -66,9 +62,7 @@ t.prompt_rsp = inputdlg(t.prompt, 'enter participant info', 1, t.prompt_defaulta
 d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 
 % check participant info has been entered correctly for the script
-if isnan(d.participant_id)
-    error('no participant number entered');
-end
+if isnan(d.participant_id); error('no participant number entered'); end
 
 % create a save file
 save_file_name = [num2str(d.participant_id,'S%02d'),'_',mfilename];
@@ -98,7 +92,7 @@ save(save_file); % save all data to a .mat file
 fprintf('defining exp params for %s\n', mfilename);
 
 % define keys
-p.resp_keys = {'1','2','3'}; % only accepts three response options
+p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 for i = 1:length(p.resp_keys)
     p.resp_coding{1,i} = p.resp_keys{i};
     p.resp_coding{2,i} = p.colours(i);
@@ -117,25 +111,6 @@ p.iti_time = 0.3; % inter trial inteval time
 p.trial_duration = 1.5; % seconds for the stimuli to be displayed
 p.feedback_time = 0.5; % period to display feedback after response
 p.min_stim_time = 0.2; % time to not show the stimulus
-% lets check all those parameters
-t.view_p = struct2table(p, 'AsArray', true);
-disp(t.view_p);
-warning('happy with all this? (y/n)\n %s.mat', save_file);
-while 1 % loop forever until y or n
-    ListenChar(2);
-    [secs,keyCode] = KbWait; % wait for response
-    key_name = KbName(keyCode); % find out name of key that was pressed
-    if strcmp(key_name, 'y')
-        fprintf('happy with parameters\n continuing with %s\n', mfilename)
-        ListenChar(0);
-        clear secs keyCode key_name
-        break % break the loop and continue
-    elseif strcmp(key_name, 'n')
-        ListenChar(0);
-        clear secs keyCode key_name
-        error('not happy with parameters\n aborting %s\n', mfilename); % error out
-    end
-end % end response loop
 
 %% define stimuli parameters
 
@@ -234,9 +209,7 @@ p.permutations = perms(1:4);
 % select permutation based on ID
 if d.participant_id >= length(p.permutations)
     t.this_permutation = mod(d.participant_id,length(p.permutations));
-else
-    t.this_permutation = d.participant_id;
-end
+else; t.this_permutation = d.participant_id; end
 d.permutation = p.permutations(t.this_permutation,:);
 
 % create a procedure based on the trial matrices and permutation
@@ -311,27 +284,29 @@ try
         t.this_feature = d.procedure_code(proc,1);
         if contains(d.procedure_code(proc,2),'training')
             t.training = 1;
-        else
-            t.trianing = 0;
-        end
+            t.training_type = extractBefore(d.procedure_code(proc,2),'_');
+        else; t.trianing = 0; end
         
         %% start trial
         for trial = 1:size(t.this_proc,1)
             fprintf('trial %u of %u\n',trial,size(t.this_proc,1)); % report trial number to command window
             t.this_trial = t.this_proc(trial,:);
             t.this_stim_idx = t.this_trial(1);
+            t.this_size = t.this_triaql(2);
             if t.training
-                t.stimulus = cell2mat(p.training_stimuli(t.this_stim_idx,2));
-            else
-                t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2));
-            end
-            t.this_size = t.this_trial(2);
+                if strcmp(t.training_type,'colour')
+                    t .this_size = 2;
+                    t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
+                elseif strcmp(t.training_type,'size')
+                    t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),2));
+                end
+            else; t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2)); end
             t.result_counter = t.result_counter+1; % iterate results counter
             
             % set up a queue to collect response info
             t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
             t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
-            t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
+            t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)21
             KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
             KbQueueStart(); % starts delivering keypress info to the queue
             
@@ -359,7 +334,10 @@ try
             
             % deal with keypress
             [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
-            t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
+            if t.pressed
+                t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
+                t.resp_key_name = t.resp_key_name{1}; % just get the first entry (if two are pressed together)
+            else; t.resp_key_name = NaN; end
             t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
             
             t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
