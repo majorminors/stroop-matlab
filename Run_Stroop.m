@@ -15,16 +15,23 @@ t = struct(); % another structure for untidy trial specific floating variables t
 
 % initial settings
 rootdir = pwd; % root directory - used to inform directory mappings
-p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests and sets number of trials and blocks to test values) - see '% test variables' below
+p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
+p.screen_num = 0;
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
 p.sizes = {'short','medium','tall'}; % used to create response coding
+p.screen_width = 40;   % Screen width in cm
+p.screen_height = 30;    % Screen height in cm
+p.screen_distance = 50; % Screen distance from participant in cm
 p.visual_angles = [10,11,12]; % visual angles of the stimulus expressed as a decimal - determines sizes
 p.falsefonts = {'ffred','ffblue','ffgreen'}; % don't use this currently - just dealing with the ff prefix in the stimulus matrix code directly
 % i'm going to hardcode four tasks to get this done quickly - see trial params
 
 % directory mapping
+if ispc
+    setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); % make sure psychtoolbox has all it's stuff on pc
+end
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
 stimdir = fullfile(rootdir, 'lib', 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
@@ -152,7 +159,8 @@ while i < numel(t.stimuli) % loop through the files
         if startsWith(t.front,'ff') % remove the ff so we can compare
             t.front = erase(t.front,'ff');
             p.stimuli{stim,3} = 'falsefont';
-        else p.stimuli{stim,3} = 'font';
+        else
+            p.stimuli{stim,3} = 'font';
         end
         if strcmp(t.front,t.back) % compare front and back
             p.stimuli{stim,4} = 'congruent';
@@ -266,7 +274,7 @@ while t.proc_counter < t.proc_end
         end
     end
     d.procedure(:,:,t.proc_counter) = t.trial_mat;
-    Shuffle(d.procedure,[2]); % shuffle rows independently on each page
+    d.procedure = Shuffle(d.procedure,[2]); % shuffle rows independently on each page
     d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type};
 end
 
@@ -318,10 +326,10 @@ try
             KbQueueStart(); % starts delivering keypress info to the queue
             
             % make the texture and scale it
-            t.stim_tex = Screen('MakeTexture', p.win, p.stimuli(t.this_stim_idx,2));
+            t.stim_tex = Screen('MakeTexture', p.win, cell2mat(p.stimuli(t.this_stim_idx,2)));
             [t.tex_size1, t.tex_size2, t.tex_size3] = size(t.stim_tex); % get size of texture
             t.aspectratio = t.tex_size2/t.tex_size1; % get the aspect ratio of the image for scaling purposes
-            t.imageheight = angle2pix(p,p.visual_angles(t.this_size); % scale the height of the image using the desired visual angle
+            t.imageheight = angle2pix(p,p.visual_angles(t.this_size)); % scale the height of the image using the desired visual angle
             t.imagewidth = t.imageheight .* t.aspectratio; % get the scaled width, constrained by the aspect ratio of the image
             
             % parameterise the rect to display cue in
@@ -347,11 +355,11 @@ try
             t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
             
             % save the response key (as a code)
-            if cell2mat(t.resp_key_name == p.resp_keys{1}
+            if t.resp_key_name == p.resp_keys{1}
                 t.resp_code = 1; % code response 1 pressed
-            elseif cell2mat(t.resp_key_name == p.resp_keys{2}
+            elseif t.resp_key_name == p.resp_keys{2}
                 t.resp_code = 2; % code response 2 pressed
-            elseif cell2mat(t.resp_key_name == p.resp_keys{3}
+            elseif t.resp_key_name == p.resp_keys{3}
                 t.resp_code = 3; % code response 2 pressed
             else
                 t.resp_code = 0; % code invalid response
@@ -383,13 +391,11 @@ try
                 error('%s quit by user (p.quitkey pressed)\n', mfilename);
             end
             
-            % display some feedback if trialwise feedback on
-            if p.feedback_type == 1
-                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
-                Screen('Flip', p.win);
-                WaitSecs(p.feedback_time);
-                Screen('Flip', p.win);
-            end
+            % display trialwise feedback
+            DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
+            Screen('Flip', p.win);
+            WaitSecs(p.feedback_time);
+            Screen('Flip', p.win);
             
             %% post trial cleanup
             KbQueueRelease();
