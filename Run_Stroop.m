@@ -292,15 +292,22 @@ try
             fprintf('trial %u of %u\n',trial,size(t.this_proc,1)); % report trial number to command window
             t.this_trial = t.this_proc(trial,:);
             t.this_stim_idx = t.this_trial(1);
-            t.this_size = t.this_triaql(2);
+            t.this_size = t.this_trial(2);
             if t.training
                 if strcmp(t.training_type,'colour')
                     t .this_size = 2;
                     t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
+                    t.corr_colour = p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),5);
+                    disp(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),:));
                 elseif strcmp(t.training_type,'size')
                     t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),2));
+                    t.corr_colour = p.stimuli(t.this_stim_idx,5);
+                    disp(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),:));
                 end
-            else; t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2)); end
+            else
+                t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2));
+                disp(p.stimuli(t.this_stim_idx,:));
+            end
             t.result_counter = t.result_counter+1; % iterate results counter
             
             % set up a queue to collect response info
@@ -336,7 +343,7 @@ try
             [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
             if t.pressed
                 t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
-                t.resp_key_name = t.resp_key_name{1}; % just get the first entry (if two are pressed together)
+                if size(t.resp_key_name) > 1; t.resp_key_name = t.resp_key_name{1}; end % just get the first entry (if two are pressed together)
             else; t.resp_key_name = NaN; end
             t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
             
@@ -364,7 +371,7 @@ try
                     t.feedback = 'incorrect';
                 end
             elseif strcmp(t.this_feature, 'colour')
-                if strcmp(p.resp_coding{2,t.resp_code},p.stimuli(t.this_stim_idx,5))
+                if strcmp(p.resp_coding{2,t.resp_code},t.corr_colour)
                     t.correct = 1;
                     t.feedback = 'correct';
                 else
@@ -372,6 +379,9 @@ try
                     t.feedback = 'incorrect';
                 end
             end
+            
+            disp(t.resp_key_name);
+            
             
             % quit if quitkey
             if strcmp(t.resp_key_name,p.quitkey)
