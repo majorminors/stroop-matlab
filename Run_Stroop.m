@@ -298,15 +298,12 @@ try
                     t .this_size = 2;
                     t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
                     t.corr_colour = p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),5);
-                    disp(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),:));
                 elseif strcmp(t.training_type,'size')
-                    t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),2));
-                    t.corr_colour = p.stimuli(t.this_stim_idx,5);
-                    disp(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),:));
+                    t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),2)); 
                 end
             else
                 t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2));
-                disp(p.stimuli(t.this_stim_idx,:));
+                t.corr_colour = p.stimuli(t.this_stim_idx,5);
             end
             t.result_counter = t.result_counter+1; % iterate results counter
             
@@ -379,9 +376,6 @@ try
                     t.feedback = 'incorrect';
                 end
             end
-            
-            disp(t.resp_key_name);
-            
             
             % quit if quitkey
             if strcmp(t.resp_key_name,p.quitkey)
