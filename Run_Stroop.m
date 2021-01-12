@@ -107,8 +107,8 @@ end; clear i;
 p.quitkey = {'q'};
 
 % define display info
-p.bg_colour = [0 0 0];
-p.text_colour = [255 255 255]; % colour of instructional text
+p.bg_colour = [255 255 255];
+p.text_colour = [0 0 0]; % colour of instructional text
 p.text_size = 40; % size of text
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
@@ -296,7 +296,7 @@ try
         p.window_size=[];
     end
     [p.win,p.rect] = Screen('OpenWindow',p.screen_num,p.bg_colour,p.window_size);
-    %Screen('BlendFunction',p.win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); % allows transparency in .png images
+    Screen('BlendFunction',p.win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); % allows transparency in .png images
     Screen('TextSize', p.win, p.text_size); % set the text size
     % then need some info based on the screen for later
     %p.frame_rate = 1/Screen('GetFlipInterval', p.win); % is Hz
