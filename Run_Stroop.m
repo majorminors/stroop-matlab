@@ -1,4 +1,4 @@
-%% Matching motion coherence to direction cue in MEG
+%% Stroop task
 % Dorian Minors
 % Created: JAN21
 % Last Edit: JAN21
@@ -15,6 +15,8 @@ t = struct(); % another structure for untidy trial specific floating variables t
 
 % initial settings
 rootdir = pwd; % root directory - used to inform directory mappings
+p.vocal_stroop = 1;
+p.manual_stroop = 0;
 p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
@@ -25,8 +27,10 @@ p.screen_width = 40;   % Screen width in cm
 p.screen_height = 30;    % Screen height in cm
 p.screen_distance = 50; % Screen distance from participant in cm
 p.visual_angles = [10,11,12]; % visual angles of the stimulus expressed as a decimal - determines sizes
-p.falsefonts = {'ffred','ffblue','ffgreen'}; % don't use this currently - just dealing with the ff prefix in the stimulus matrix code directly
+% p.falsefonts = {'ffred','ffblue','ffgreen'}; % don't use this currently - just dealing with the ff prefix in the stimulus matrix code directly
 % i'm going to hardcode four tasks to get this done quickly - see trial params
+
+if p.vocal_stroop && p.manual_stroop; error('you have selected both vocal and manual stroop!'); end
 
 % directory mapping
 if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
@@ -65,7 +69,8 @@ d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 if isnan(d.participant_id); error('no participant number entered'); end
 
 % create a save file
-save_file_name = [num2str(d.participant_id,'S%02d'),'_',mfilename];
+if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
+save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename];
 save_file = fullfile(datadir, save_file_name);
 if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
     warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
@@ -92,13 +97,15 @@ save(save_file); % save all data to a .mat file
 fprintf('defining exp params for %s\n', mfilename);
 
 % define keys
-p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
-for i = 1:length(p.resp_keys)
-    p.resp_coding{1,i} = p.resp_keys{i};
-    p.resp_coding{2,i} = p.colours(i);
-    p.resp_coding{3,i} = p.sizes(i);
-end; clear i;
-p.quitkey = {'q'};
+if p.manual_stroop
+    p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
+    for i = 1:length(p.resp_keys)
+        p.resp_coding{1,i} = p.resp_keys{i};
+        p.resp_coding{2,i} = p.colours(i);
+        p.resp_coding{3,i} = p.sizes(i);
+    end; clear i;
+end
+p.quitkey = {'q'}; % keep this for vocal and manual
 
 % define display info
 p.bg_colour = [255 255 255];
@@ -125,39 +132,39 @@ while i < numel(t.stimuli) % loop through the files
     i = i+1;
     t.filename = t.stimuli(i).name; % get the filename
     t.this_stim = erase(t.filename,'.png'); % get rid of the extension
-    if contains(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus)
-        stim = stim+1;
+    if contains(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus and has two feature attributed in the filename)
+        stim = stim+1; % iterate stimulus counter
         p.stimuli{stim,1} = t.this_stim; % add in the stimulus name
         p.stimuli{stim,2} = imread(fullfile(stimdir, t.filename)); % read in the image
-        t.front = extractBefore(p.stimuli{stim,1},'-'); % get the front
-        t.back = extractAfter(p.stimuli{stim,1},'-'); % get the back
-        if startsWith(t.front,'ff') % remove the ff so we can compare
+        t.front = extractBefore(p.stimuli{stim,1},'-'); % get the front of the name
+        t.back = extractAfter(p.stimuli{stim,1},'-'); % get the back of the name
+        if startsWith(t.front,'ff') % remove the ff from false font stimuli so we can compare names, and code as falsefont
             t.front = erase(t.front,'ff');
             p.stimuli{stim,3} = 'falsefont';
         else
-            p.stimuli{stim,3} = 'font';
+            p.stimuli{stim,3} = 'font'; % otherwise code as font
         end
-        if strcmp(t.front,t.back) % compare front and back
-            p.stimuli{stim,4} = 'congruent';
+        if strcmp(t.front,t.back) % compare front and back of the name
+            p.stimuli{stim,4} = 'congruent'; % if matches, congruent
         else
-            p.stimuli{stim,4} = 'incongruent';
+            p.stimuli{stim,4} = 'incongruent'; % if doesn't match, incongruent
         end
-        p.stimuli{stim,5} = t.back;
-        p.stimuli{stim,6} = t.front;
-    else
-        tstim = tstim+1;
-        p.training_stimuli{tstim,1} = t.this_stim;
+        p.stimuli{stim,5} = t.back; % add the back to the matrix (colour information)
+        p.stimuli{stim,6} = t.front; % add the front to the matrix (print information)
+    else % if no hyphen, then it's a single dimensional training stimulus so
+        tstim = tstim+1; % iterate the training stim counter
+        p.training_stimuli{tstim,1} = t.this_stim; % get the stimulus name
         p.training_stimuli{tstim,2} = imread(fullfile(stimdir, t.filename)); % read in the image
-        if strcmp(t.this_stim,'line')
-            p.training_stimuli{tstim,3} = 'line';
+        if strcmp(t.this_stim,'line') % if it's the line stimulus
+            p.training_stimuli{tstim,3} = 'line'; % code as such
         else
-            p.training_stimuli{tstim,3} = 'colour';
+            p.training_stimuli{tstim,3} = 'colour'; % else it's one of the colour training stims
         end
-        p.training_stimuli{tstim,4} = 'training';
+        p.training_stimuli{tstim,4} = 'training'; % code as training
         p.training_stimuli{tstim,5} = t.this_stim;
     end
 end; clear i stim tstim t.front t.back t.this_stim t.filename;
-% add those to the data structure
+% save those to the data structure
 d.stimulus_matrix = p.stimuli;
 d.training_stimulus_matrix = p.training_stimuli;
 
@@ -168,9 +175,10 @@ fprintf('defining trials for %s\n', mfilename);
 % trial matrix
 %   1) stimulus index
 %   2) size info (1, 2, or 3)
+% third dimension delineates font trials from false font trials
 p.trial_mat = [];
-countf = 1;
-countff = 1;
+countf = 1; % counter for the fonts
+countff = 1; % counter for the false fonts
 for i = 1:numel(p.stimuli(:,1))
     if strcmp(p.stimuli{i,3},'font') && strcmp(p.stimuli{i,4},'congruent')
         p.trial_mat(countf,1,1) = i;
@@ -219,23 +227,23 @@ t.perm_counter = 1; % something to index through the permutation
 t.proc_counter = 0; % something to index through the procedures
 t.proc_end = length(d.permutation); % something to end the while loop
 while t.proc_counter < t.proc_end
-    t.proc_counter = t.proc_counter+1;
-    if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 3
-        t.colour_counter = t.colour_counter+1;
+    t.proc_counter = t.proc_counter+1; % iterate up one procedure
+    if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 3 % if a 1 or a 3
+        t.colour_counter = t.colour_counter+1; % it's a colour trial
         t.trial_feature = 'colour';
-    elseif d.permutation(t.perm_counter) == 2 || d.permutation(t.perm_counter) == 4
-        t.size_counter = t.size_counter+1;
+    elseif d.permutation(t.perm_counter) == 2 || d.permutation(t.perm_counter) == 4 % if a 2 or 4
+        t.size_counter = t.size_counter+1; % it's a size trial
         t.trial_feature = 'size';
     end
-    if t.colour_counter == 1
-        t.trial_mat = p.trn_mat;
+    if t.colour_counter == 1 % if it's the first time we've had a colour trial
+        t.trial_mat = p.trn_mat; % pop in a training block
         t.proc_end = t.proc_end+1;
         t.trial_type = 'colour_training';
-    elseif t.size_counter == 1
-        t.trial_mat = p.trn_mat;
+    elseif t.size_counter == 1 % if it's the first time we've had a size trial
+        t.trial_mat = p.trn_mat; % pop in a training block
         t.proc_end = t.proc_end+1;
         t.trial_type = 'size_training';
-    else
+    else % else, pop in a test block
         if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 2
             t.perm_counter = t.perm_counter+1;
             t.trial_mat = p.trial_mat(:,:,1);
@@ -246,9 +254,9 @@ while t.proc_counter < t.proc_end
             t.trial_type = 'falsefont';
         end
     end
-    d.procedure(:,:,t.proc_counter) = t.trial_mat;
-    d.procedure = Shuffle(d.procedure,[2]); % shuffle rows independently on each page
-    d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type};
+    d.procedure(:,:,t.proc_counter) = t.trial_mat; % add the procedure to the matrix, the third dimension indicates which procedure
+    d.procedure = Shuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension
+    d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type}; % get a code of what procedure is on what page
 end
 
 %% exp start
@@ -285,7 +293,7 @@ try
         if contains(d.procedure_code(proc,2),'training')
             t.training = 1;
             t.training_type = extractBefore(d.procedure_code(proc,2),'_');
-        else; t.trianing = 0; end
+        else; t.training = 0; end
         
         %% start trial
         for trial = 1:size(t.this_proc,1)
@@ -308,7 +316,11 @@ try
             t.result_counter = t.result_counter+1; % iterate results counter
             
             % set up a queue to collect response info
-            t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
+            if p.manual_stroop
+                t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
+            elseif p.vocal_stroop
+                t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
+            end
             t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
             t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)21
             KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
@@ -336,7 +348,7 @@ try
             
             %% deal with response
             
-            % deal with keypress
+            % deal with keypress (required for both manual and quitkey in vocal)
             [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
             if t.pressed
                 t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
@@ -344,59 +356,62 @@ try
             else; t.resp_key_name = NaN; end
             t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
             
-            t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
-            
-            % save the response key (as a code)
-            if t.resp_key_name == p.resp_keys{1}
-                t.resp_code = 1; % code response 1 pressed
-            elseif t.resp_key_name == p.resp_keys{2}
-                t.resp_code = 2; % code response 2 pressed
-            elseif t.resp_key_name == p.resp_keys{3}
-                t.resp_code = 3; % code response 2 pressed
-            else
-                t.resp_code = 0; % code invalid response
-                t.feedback = 'no valid response';
-            end
-            
-            % score response
-            if strcmp(t.this_feature, 'size')
-                if t.this_size == t.resp_code
-                    t.correct = 1;
-                    t.feedback = 'correct';
-                else
-                    t.correct = 0;
-                    t.feedback = 'incorrect';
-                end
-            elseif strcmp(t.this_feature, 'colour')
-                if strcmp(p.resp_coding{2,t.resp_code},t.corr_colour)
-                    t.correct = 1;
-                    t.feedback = 'correct';
-                else
-                    t.correct = 0;
-                    t.feedback = 'incorrect';
-                end
-            end
-            
             % quit if quitkey
             if strcmp(t.resp_key_name,p.quitkey)
                 fclose('all');
                 error('%s quit by user (p.quitkey pressed)\n', mfilename);
             end
             
-            % display trialwise feedback
-            DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
-            Screen('Flip', p.win);
-            WaitSecs(p.feedback_time);
-            Screen('Flip', p.win);
+            if p.manual_stroop % code response
+                t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
+                
+                % save the response key (as a code)
+                if t.resp_key_name == p.resp_keys{1}
+                    t.resp_code = 1; % code response 1 pressed
+                elseif t.resp_key_name == p.resp_keys{2}
+                    t.resp_code = 2; % code response 2 pressed
+                elseif t.resp_key_name == p.resp_keys{3}
+                    t.resp_code = 3; % code response 2 pressed
+                else
+                    t.resp_code = 0; % code invalid response
+                    t.feedback = 'no valid response';
+                end
+                
+                % score response
+                if strcmp(t.this_feature, 'size')
+                    if t.this_size == t.resp_code
+                        t.correct = 1;
+                        t.feedback = 'correct';
+                    else
+                        t.correct = 0;
+                        t.feedback = 'incorrect';
+                    end
+                elseif strcmp(t.this_feature, 'colour')
+                    if strcmp(p.resp_coding{2,t.resp_code},t.corr_colour)
+                        t.correct = 1;
+                        t.feedback = 'correct';
+                    else
+                        t.correct = 0;
+                        t.feedback = 'incorrect';
+                    end
+                end
+                
+                % display trialwise feedback
+                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
+                Screen('Flip', p.win);
+                WaitSecs(p.feedback_time);
+                Screen('Flip', p.win);
+                
+                % collate the results
+                d.results(t.result_counter,1) = t.rt;
+                d.results(t.result_counter,2) = t.correct;
+                d.results(t.result_counter,3) = t.this_stim_idx;
+            end % end manual stroop coding
+            
+            % end trial
             
             %% post trial cleanup
             KbQueueRelease();
-            
-            d.results(t.result_counter,1) = t.rt;
-            d.results(t.result_counter,2) = t.correct;
-            d.results(t.result_counter,3) = t.this_stim_idx;
-            
-            % end trial
         end; clear trial;
         
         save(save_file); % so we don't lose all data in a crash
@@ -417,7 +432,6 @@ try
     % close screen
     ShowCursor;
     KbQueueRelease(); %KbReleaseWait();
-    if p.MEG_enabled == 1; MEG.delete; end % stop MEG from limiting button presses
     clear ans; % clear extraneous stuff
     Screen('Close',p.win);
     
