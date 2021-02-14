@@ -24,6 +24,8 @@ p.screen_num = 0;
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
 p.sizes = {'short','medium','tall'}; % used to create response coding
+p.size_scales = [0.5,0.7,1]; % scales for image sizing in trial
+p.max_height = 100; % in rows for the largest size scale
 p.quitkey = {'q'}; % keep this for vocal and manual
 p.screen_width = 40;   % Screen width in cm
 p.screen_height = 30;    % Screen height in cm
@@ -124,7 +126,9 @@ while i < numel(t.stimuli) % loop through the files
     if regexp(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus and has two feature attributed in the filename)
         stim = stim+1; % iterate stimulus counter
         p.stimuli{stim,1} = t.this_stim; % add in the stimulus name
-        p.stimuli{stim,2} = imread(fullfile(stimdir, t.filename)); % read in the image
+        t.imported_stim = imread(fullfile(stimdir, t.filename)); % read in the image
+        t.scaled_stim = imresize(t.imported_stim, [p.max_height,NaN]); % scale images to a specified number of rows, maintaining aspect ratio
+        p.stimuli{stim,2} = t.scaled_stim;
         t.front = t.this_stim(1:regexp(t.this_stim,'-')-1); % get the front of the name
         t.back = t.this_stim(regexp(t.this_stim,'-')+1:end); % get the back of the name
         if regexp(t.front,'ff') % if there's an 'ff' in t.front
@@ -306,6 +310,9 @@ try
                 t.corr_colour = p.stimuli(t.this_stim_idx,5);
             end
             t.result_counter = t.result_counter+1; % iterate results counter
+            
+            % resize based on the size required
+            t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
             
             % set up a queue to collect response info
             if p.manual_stroop
