@@ -15,8 +15,8 @@ t = struct(); % another structure for untidy trial specific floating variables t
 
 % initial settings
 rootdir = pwd; % root directory - used to inform directory mappings
-p.vocal_stroop = 1;
-p.manual_stroop = 0;
+p.vocal_stroop = 0;
+p.manual_stroop = 1;
 p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
@@ -41,8 +41,9 @@ if ~exist(datadir,'dir'); mkdir(datadir); end
 
 % test variables
 if p.testing_enabled == 1
-    p.PTBsynctests = 1; % PTB will skip synctests ifimread(fullfile(stimdir, 1
+    p.PTBsynctests = 1; % PTB will skip synctests if 1
     p.PTBverbosity = 1; % PTB will only display critical warnings with 1
+    Screen('Preference', 'ConserveVRAM', 64); % for working on a vm, we need this enabled
 elseif p.testing_enabled == 0
     if p.skip_synctests
         p.PTBsynctests = 1;
@@ -303,7 +304,7 @@ try
             t.this_size = t.this_trial(2);
             if t.training
                 if strcmp(t.training_type,'colour')
-                    t .this_size = 2;
+                    t.this_size = 2; % select medium size
                     t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
                     t.corr_colour = p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),5);
                 elseif strcmp(t.training_type,'size')
