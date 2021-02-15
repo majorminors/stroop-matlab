@@ -29,6 +29,7 @@ p.max_height = 600; % in rows for the largest size scale
 p.quitkey = {'q'}; % keep this for vocal and manual
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
+p.vocal_threshold = 0.1; % between 0 and 1
 p.screen_width = 40;   % Screen width in cm
 p.screen_height = 30;    % Screen height in cm
 p.screen_distance = 50; % Screen distance from participant in cm
@@ -57,6 +58,10 @@ elseif p.testing_enabled == 0
 end
 Screen('Preference', 'SkipSyncTests', p.PTBsynctests);
 Screen('Preference', 'Verbosity', p.PTBverbosity);
+if p.vocal_stroop
+    InitializePsychSound;
+    PsychPortAudio('Verbosity', verbose);
+end
 
 % psychtoolbox setup
 AssertOpenGL; % check Psychtoolbox (on OpenGL) and Screen() is working
@@ -349,7 +354,11 @@ try
             
             % then display cue
             t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
-            WaitSecs(p.trial_duration); % wait for trial
+            if p.vocal_stroop
+                t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, fullfile(save_file,'_audio'), 'savemode', 2)
+            elseif p.manual_stroop
+                WaitSecs(p.trial_duration); % wait for trial
+            end
             %% deal with response
             
             % deal with keypress (required for both manual and quitkey in vocal)
@@ -408,7 +417,11 @@ try
                 
                 % collate the results - each page is a procedure
                 d.results(trial,1,proc) = t.rt;
-                d.results(trial,2,proc) = t.correct;
+                if p.manual_stroop
+                    d.results(trial,2,proc) = t.correct;
+                else
+                    d.results(trial,2,proc) = -2;
+                end
                 d.results(trial,3,proc) = t.this_stim_idx;
             end % end manual stroop coding
             
