@@ -34,7 +34,7 @@ p.screen_distance = 50; % Screen distance from participant in cm
 if p.vocal_stroop && p.manual_stroop; error('you have selected both vocal and manual stroop!'); end
 
 % directory mapping
-%if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
+    qif ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
 stimdir = fullfile(rootdir, 'lib', 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
@@ -123,8 +123,10 @@ while i < numel(t.stimuli) % loop through the files
     i = i+1;
     t.filename = t.stimuli(i).name; % get the filename
     t.this_stim = t.filename(1:regexp(t.filename,'\.')-1); % get rid of the extension from the '.' on
-    t.imported_stim = imread(fullfile(stimdir, t.filename)); % read in the image
+    [t.imported_stim,~,t.imported_alpha] = imread(fullfile(stimdir, t.filename)); % read in the image
     t.scaled_stim = imresize(t.imported_stim, [p.max_height,NaN]); % scale images to a specified number of rows, maintaining aspect ratio
+    t.scaled_alpha = imresize(t.imported_alpha, [p.max_height,NaN]);
+    t.scaled_stim(:,:,4) = t.scaled_alpha;
     if regexp(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus and has two feature attributed in the filename)
         stim = stim+1; % iterate stimulus counter
         p.stimuli{stim,1} = t.this_stim; % add in the stimulus name
@@ -315,7 +317,7 @@ try
             t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
                        
 %             if you want to test
-%             t.stimulus = cell2mat(p.training_qstimuli(1,2));
+%              t.stimulus = cell2mat(p.stimuli(4,2));
             
             % set up a queue to collect response info
             if p.manual_stroop
