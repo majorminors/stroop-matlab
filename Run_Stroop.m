@@ -211,7 +211,7 @@ p.trn_mat(:,2) = reshape(repmat(1:3,length(p.trn_mat(:,1))/3/3,3),[],1);
 p.permutations = perms(1:4);
 % select permutation based on ID
 if d.participant_id >= length(p.permutations)
-    t.this_permutation = mod(d.participant_id,length(p.permutations));
+    t.this_permutation = mod(d.participant_id,length(p.permutations)); % so ids will neatly divide up into the permutations
 else
     t.this_permutation = d.participant_id;
 end
@@ -382,7 +382,7 @@ try
                         t.feedback = 'incorrect';
                     end
                 elseif strcmp(t.this_feature, 'colour')
-                    if strcmp(p.resp_coding{2,t.resp_code},t.corr_colour)
+                    if strcmp(p.colours{t.resp_code},t.corr_colour)
                         t.correct = 1;
                         t.feedback = 'correct';
                     else
@@ -392,7 +392,7 @@ try
                 end
                 
                 % display trialwise feedback
-                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); %display feedback
+                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
                 Screen('Flip', p.win);
                 WaitSecs(p.feedback_time);
                 Screen('Flip', p.win);
