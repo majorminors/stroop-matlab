@@ -259,14 +259,9 @@ d.procedure = Shuffle(d.procedure,[2]); % shuffle rows independently on each pag
 %% exp start
 
 fprintf('running experiment %s\n', mfilename);
-%% define results matrix
-t.result_counter = 0;
+
+% define results matrix
 d.results = []; % initialise a results matrix
-%% define some training stuff
-d.training_results = [];
-t.training_result_counter = 0;
-t.train_size = 0;
-t.train_colour = 0;
 
 try
     % open screen
@@ -311,7 +306,6 @@ try
                 t.stimulus = cell2mat(p.stimuli(t.this_stim_idx,2));
                 t.corr_colour = p.stimuli(t.this_stim_idx,5);
             end
-            t.result_counter = t.result_counter+1; % iterate results counter
             
             % resize based on the size required
             t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
@@ -397,10 +391,10 @@ try
                 WaitSecs(p.feedback_time);
                 Screen('Flip', p.win);
                 
-                % collate the results
-                d.results(t.result_counter,1) = t.rt;
-                d.results(t.result_counter,2) = t.correct;
-                d.results(t.result_counter,3) = t.this_stim_idx;
+                % collate the results - each page is a procedure
+                d.results(trial,1,proc) = t.rt;
+                d.results(trial,2,proc) = t.correct;
+                d.results(trial,3,proc) = t.this_stim_idx;
             end % end manual stroop coding
             
             % end trial
