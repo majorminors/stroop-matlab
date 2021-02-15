@@ -27,6 +27,8 @@ p.sizes = {'short','medium','tall'}; % used to create response coding
 p.size_scales = [0.5,0.7,1]; % scales for image sizing in trial
 p.max_height = 600; % in rows for the largest size scale
 p.quitkey = {'q'}; % keep this for vocal and manual
+p.fixation_size = 40; % px
+p.fixation_thickness = 4; % px
 p.screen_width = 40;   % Screen width in cm
 p.screen_height = 30;    % Screen height in cm
 p.screen_distance = 50; % Screen distance from participant in cm
@@ -34,7 +36,7 @@ p.screen_distance = 50; % Screen distance from participant in cm
 if p.vocal_stroop && p.manual_stroop; error('you have selected both vocal and manual stroop!'); end
 
 % directory mapping
-    qif ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
+%if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
 stimdir = fullfile(rootdir, 'lib', 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
@@ -70,10 +72,14 @@ d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 % check participant info has been entered correctly for the script
 if isnan(d.participant_id); error('no participant number entered'); end
 
-% create a save file
+% create a structure for saving
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
+% create a savedir
+savedir = fullfile(datadir, [num2str(d.participant_id,'S%02d'), '_',t.exp_type]); % will make a data directory if none exists
+if ~exist(savedir,'dir'); mkdir(savedir); end
+% create a save file name
 save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename];
-save_file = fullfile(datadir, save_file_name);
+save_file = fullfile(savedir, save_file_name);
 if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
     warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
     while 1 % loop forever until y or n
@@ -93,6 +99,8 @@ if exist([save_file '.mat'],'file') % check if the file already exists and throw
     end % end response loop
 end % end check save file exist
 save(save_file); % save all data to a .mat file
+
+
 
 %% define experiment parameters
 
@@ -273,6 +281,7 @@ try
     Screen('TextSize', p.win, p.text_size); % set the text size
     % then need some info based on the screen for later
     %p.frame_rate = 1/Screen('GetFlipInterval', p.win); % is Hz
+    [p.xCenter, p.yCenter] = RectCenter(p.rect);
     p.resolution = p.rect([3,4]); %  resolution info from p.rect - used to scale cue image
     HideCursor;
     WaitSecs(0.5); % warm up
@@ -311,7 +320,7 @@ try
             t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
                        
 %             if you want to test
-%              t.stimulus = cell2mat(p.stimuli(4,2));
+% t.stimulus = cell2mat(p.stimuli(4,2));
             
             % set up a queue to collect response info
             if p.manual_stroop
@@ -324,13 +333,19 @@ try
             KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
             KbQueueStart(); % starts delivering keypress info to the queue
             
+            % iti          
+            % get coordinates for centering stimuli from fixation parameters
+            p.xCoords = [-p.fixation_size p.fixation_size 0 0];
+            p.yCoords = [0 0 -p.fixation_size p.fixation_size];
+            p.allCoords = [p.xCoords; p.yCoords];
+            
+            Screen('DrawLines', p.win, p.allCoords, p.fixation_thickness, p.text_colour, [p.xCenter p.yCenter], 2);
+            Screen('Flip', p.win);
+            WaitSecs(p.iti_time);
+            
             % make the texture and draw it
             t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
             Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
-            
-            % iti
-            % we want a fixation? or at least a blank screen?
-            WaitSecs(p.iti_time);
             
             % then display cue
             t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
