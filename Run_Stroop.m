@@ -267,10 +267,9 @@ while t.proc_counter < t.proc_end
     d.procedure(:,:,t.proc_counter) = t.trial_mat; % add the procedure to the matrix, the third dimension indicates which procedure
     d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type}; % get a code of what procedure is on what page
 end
-d.procedure = Shuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension
+d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here because old version?))
 
 %% exp start
-
 fprintf('running experiment %s\n', mfilename);
 
 % define results matrix
@@ -305,9 +304,9 @@ try
         %% trial loop
         for trial = 1:size(t.this_proc,1)
             fprintf('trial %u of %u\n',trial,size(t.this_proc,1)); % report trial number to command window
-            t.this_trial = t.this_proc(trial,:);
-            t.this_stim_idx = t.this_trial(1);
-            t.this_size = t.this_trial(2);
+            t.this_trial = t.this_proc(trial,:); % get the trial information
+            t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
+            t.this_size = t.this_trial(2); % get the size of the trial
             if t.training
                 if strcmp(t.training_type,'colour')
                     t.this_size = 2; % select medium size
