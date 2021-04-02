@@ -7,11 +7,11 @@ function ts = Timestamp(description, initTime, proc, trialNum)
 ts = struct();
 
 %catch missing variables
-if nargin < 2; 
 if nargin < 3; proc = 0; end
 if nargin < 4; trialNum = 0; end
 
 ts.description = description;
+ts.inittime = initTime;
 ts.time = 1000*(GetSecs() - initTime);
 ts.procedure = proc;
 ts.trial_number = trialNum;

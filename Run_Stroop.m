@@ -18,27 +18,41 @@ rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
 p.scanning = 0;
+
+% tech settings
+p.screen_num = 0; % if multiple monitors, else 0
+p.buttonbox = 0; % or keyboard
+p.max_height = 600; % in rows for the largest size scale
+% Set fMRI parameters
+if p.scanning
+    p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
+    p.num_baseline_triggers = 4;   % Number of triggers we record as a baseline at the start of each block
+    delay = 4000;                  % Wait time for response
+    % Initialise a scansync session
+    scansync('reset',p.tr)         % also needed to record button box responses
+end
+
+
+% testing settings
 p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
-p.screen_num = 0;
-p.buttonbox = 0;
-p.scanning = 0;
+
+% keys
 p.bad_buttons = 4; % if p.buttonbox, what buttons are invalid? this assumes you're using scansync numbers 1-3 or else you need to address the response coding for correct/incorrect
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
-p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
-p.sizes = {'short','medium','tall'}; % used to create response coding
-p.size_scales = [0.5,0.7,1]; % scales for image sizing in trial
-p.max_height = 600; % in rows for the largest size scale
 p.quitkey = {'q'}; % keep this for vocal and manual
+
+% stimulus settings
+p.size_scales = [0.5,0.7,1]; % scales for image sizing in trial
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
+p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
+p.sizes = {'short','medium','tall'}; % used to create response coding
 p.vocal_threshold = 0.1; % between 0 and 1
-p.screen_width = 40;   % Screen width in cm
-p.screen_height = 30;    % Screen height in cm
-p.screen_distance = 50; % Screen distance from participant in cm
 
 if p.vocal_stroop && p.manual_stroop; error('you have selected both vocal and manual stroop!'); end
+if p.vocal_stroop && p.buttonbox; error('you are trying to do both button box and vocal, are you sure?'); end
 
 % directory mapping
 %if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
@@ -80,15 +94,6 @@ d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 
 % check participant info has been entered correctly for the script
 if isnan(d.participant_id); error('no participant number entered'); end
-
-% Set fMRI parameters
-if p.scanning
-    p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
-    p.num_baseline_triggers = 4;   % Number of triggers we record as a baseline at the start of each block
-    delay = 4000;                  % Wait time for response
-    % Initialise a scansync session
-    scansync('reset',p.tr)         % also needed to record button box responses
-end
 
 % create a structure for saving
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
@@ -136,11 +141,15 @@ p.trial_duration = 1.5; % seconds for the stimuli to be displayed
 p.feedback_time = 0.5; % period to display feedback after response
 p.min_stim_time = 0.2; % time to not show the stimulus
 
+d.timestamps = struct()
+d.initTime = [];
+
 %% define stimuli parameters
 
 fprintf('defining stimuli params for %s\n', mfilename);
 
 % read in stimuli files for the cue and put together a stimulus matrix
+% defines the path to the stimulus, reads in the image to matrix, then codes whether it's (false)font and (in)congruent
 t.stimuli = dir(fullfile(stimdir,'*.png')); % get the file info
 i = 0; % an index to work with
 stim = 0; % a stimulus counter
@@ -153,7 +162,7 @@ while i < numel(t.stimuli) % loop through the files
     t.scaled_stim = imresize(t.imported_stim, [p.max_height,NaN]); % scale images to a specified number of rows, maintaining aspect ratio
     t.scaled_alpha = imresize(t.imported_alpha, [p.max_height,NaN]);
     t.scaled_stim(:,:,4) = t.scaled_alpha;
-    if regexp(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus and has two feature attributed in the filename)
+    if regexp(t.this_stim,'-') % if there's a hyphen (i.e. not a training stimulus and has two feature attributes in the filename)
         stim = stim+1; % iterate stimulus counter
         p.stimuli{stim,1} = t.this_stim; % add in the stimulus name
         p.stimuli{stim,2} = t.scaled_stim;
@@ -234,24 +243,24 @@ p.trn_mat(:,1) = p.trial_mat(:,2,1);
 p.trn_mat(:,2) = reshape(repmat(1:3,length(p.trn_mat(:,1))/3/3,3),[],1);
 
 % permute an order
-p.permutations = perms(1:4);
+p.permutations = perms(1:4); % get all permutations of vector
 % select permutation based on ID
 if d.participant_id >= length(p.permutations)
     t.this_permutation = mod(d.participant_id,length(p.permutations)); % so ids will neatly divide up into the permutations
 else
     t.this_permutation = d.participant_id;
 end
-d.permutation = p.permutations(t.this_permutation,:);
+d.permutation = p.permutations(t.this_permutation,:); % collect the permutation for this participant
 
 % create a procedure based on the trial matrices and permutation
-t.size_counter = 0; % something to catch the first colour procedure
-t.colour_counter = 0; % something to catch the first size procedure
-t.perm_counter = 1; % something to index through the permutation
-t.proc_counter = 0; % something to index through the procedures
+t.size_counter = 0; % something to catch the first colour procedure - starts at 0
+t.colour_counter = 0; % something to catch the first size procedure - starts at 0
+t.perm_counter = 1; % something to index through the permutation - starts at 1
+t.proc_counter = 0; % something to index through the procedures - starts at 0
 t.proc_end = length(d.permutation); % something to end the while loop
-while t.proc_counter < t.proc_end
+while t.proc_counter < t.proc_end % while we have procedures to loop through
     t.proc_counter = t.proc_counter+1; % iterate up one procedure
-    if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 3 % if a 1 or a 3
+    if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 3 % if this procudure is a 1 or a 3
         t.colour_counter = t.colour_counter+1; % it's a colour trial
         t.trial_feature = 'colour';
     elseif d.permutation(t.perm_counter) == 2 || d.permutation(t.perm_counter) == 4 % if a 2 or 4
@@ -260,27 +269,27 @@ while t.proc_counter < t.proc_end
     end
     if t.colour_counter == 1 % if it's the first time we've had a colour trial
         t.trial_mat = p.trn_mat; % pop in a training block
-        t.proc_end = t.proc_end+1; % add one to the procedure counter since we just used one up
+        t.proc_end = t.proc_end+1; % add one to the procedure loop ender since we just used one up
         t.trial_type = 'training';
     elseif t.size_counter == 1 % if it's the first time we've had a size trial
         t.trial_mat = p.trn_mat; % pop in a training block
-        t.proc_end = t.proc_end+1; % add one to the procedure counter since we just used one up
+        t.proc_end = t.proc_end+1; % add one to the procedure loop ender since we just used one up
         t.trial_type = 'training';
     else % else, pop in a test block
-        if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 2
-            t.perm_counter = t.perm_counter+1;
-            t.trial_mat = p.trial_mat(:,:,1);
-            t.trial_type = 'font';
-        elseif d.permutation(t.perm_counter) == 3 || d.permutation(t.perm_counter) == 4
-            t.perm_counter = t.perm_counter+1;
-            t.trial_mat = p.trial_mat(:,:,2);
-            t.trial_type = 'falsefont';
+        if d.permutation(t.perm_counter) == 1 || d.permutation(t.perm_counter) == 2 % if the procedure is a 2 or a 3
+            t.perm_counter = t.perm_counter+1; % iterate the permutation counter
+            t.trial_mat = p.trial_mat(:,:,1); % add in the trial matrix for fonts
+            t.trial_type = 'font'; % code it as a font procedure
+        elseif d.permutation(t.perm_counter) == 3 || d.permutation(t.perm_counter) == 4 % if its a 3 or 4
+            t.perm_counter = t.perm_counter+1; % iterate the permutation counter
+            t.trial_mat = p.trial_mat(:,:,2); % add in the trial matrix for false fonts
+            t.trial_type = 'falsefont'; % code it as a false font
         end
     end
-    d.procedure(:,:,t.proc_counter) = t.trial_mat; % add the procedure to the matrix, the third dimension indicates which procedure
+    d.procedure(:,:,t.proc_counter) = t.trial_mat; % add that trial matrix to the procedure matrix, the third dimension indicates which procedure
     d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type}; % get a code of what procedure is on what page
 end
-d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here because old version?))
+d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here as NewShuffle because one computer I was testing on had some old version?))
 
 %% exp start
 fprintf('running experiment %s\n', mfilename);
@@ -296,64 +305,59 @@ try
     [p.win,p.rect] = Screen('OpenWindow',p.screen_num,p.bg_colour,p.window_size);
     Screen('BlendFunction',p.win,GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA); % allows transparency in .png images
     Screen('TextSize', p.win, p.text_size); % set the text size
-    % then need some info based on the screen for later
-    %p.frame_rate = 1/Screen('GetFlipInterval', p.win); % is Hz
-    [p.xCenter, p.yCenter] = RectCenter(p.rect);
-    p.resolution = p.rect([3,4]); %  resolution info from p.rect - used to scale cue image
+    [p.xCenter, p.yCenter] = RectCenter(p.rect); % get the center
     HideCursor;
     WaitSecs(0.5); % warm up
     
     
     for proc = 1:size(d.procedure,3) % loop through procedures
         fprintf('procedure %u of %u\n',proc,size(d.procedure,3)); % report procedure number to command window
-        t.this_proc = d.procedure(:,:,proc);
-        t.this_feature = d.procedure_code(proc,1);
-        if strcmp(d.procedure_code(proc,2),'training')
+        t.this_proc = d.procedure(:,:,proc); % get the procedure from the procedure matrix
+        t.this_feature = d.procedure_code(proc,1); % get the trial attended feature (size/colour)
+        if strcmp(d.procedure_code(proc,2),'training') % if it's a training trial
             t.training = 1;
-            t.training_type = d.procedure_code(proc,1);
+            t.training_type = d.procedure_code(proc,1); % we're going to do something different, so get the feature again
         else
             t.training = 0;
         end
         
-        if p.scanning
-            % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
-            DrawFormattedText(MainWindow, 'Experimenter: start run when ready', 'center', 'center', p.white)
+        % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
+        DrawFormattedText(MainWindow, 'Experimenter: start run when ready', 'center', 'center', p.white)
+        Screen('Flip', MainWindow);
+        Timestamp('Instruc press space onset', [], proc);
+        KbWait()
+        
+        
+        % --- wait until TTL (this is after 4 dummy scans) ---
+        if ~p.scanning %msg experimenter
+            Wait(0.1);
+            DrawFormattedText(MainWindow, 'Dummy mode: press any key to start', 'center', 'center', p.white)
             Screen('Flip', MainWindow);
-            Timestamp('Instruc press space onset');
+            Timestamp('Instruc press space onset', [], proc);
             KbWait()
+            d.initTime(proc)=GetSecs();
             
+        else
+            DrawFormattedText(MainWindow, 'Waiting for scanner', 'center', 'center', p.white)
+            Screen('Flip', MainWindow);
+            Timestamp('Instruc wait TTL onset', [], proc);
             
-            % --- wait until TTL (this is after 4 dummy scans) ---
-            if ~p.scanning %msg experimenter
-                Wait(0.1);
-                DrawFormattedText(MainWindow, 'Dummy mode: press any key to start', 'center', 'center', p.white)
-                Screen('Flip', MainWindow);
-                Timestamp('Instruc press space onset');
-                KbWait()
-                d.initTime=GetSecs();
-                
-            else
-                DrawFormattedText(MainWindow, 'Waiting for scanner', 'center', 'center', p.white)
-                Screen('Flip', MainWindow);
-                Timestamp('Instruc wait TTL onset');
-                
-                %______________________________________________________
-                % CS 19
-                
-                [pulse_time,~,daqstate] = scansync(1,Inf);
-                d.initTime=GetSecs();
-                
-                % NEW
-                Timestamp('TR')
-                
-            end
+            %______________________________________________________
+            % CS 19
+            
+            [pulse_time,~,daqstate] = scansync(1,Inf);
+            d.initTime(proc)=GetSecs();
+            
+            % NEW
+            Timestamp('TR', [], proc);
+            
         end
         
-        Timestamp(['Start of Procedure ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], proc, 0);
+        Timestamp(['Start of Procedure ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], d.initTime(proc), proc);
         %% trial loop
         for trial = 1:size(t.this_proc,1)
             fprintf('trial %u of %u\n',trial,size(t.this_proc,1)); % report trial number to command window
-            Timestamp(['Start of Trial ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], proc, trial);
+            Timestamp(['Start of Trial ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], d.initTime(proc), proc, trial);
             t.this_trial = t.this_proc(trial,:); % get the trial information
             t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
             t.this_size = t.this_trial(2); % get the size of the trial
@@ -403,7 +407,7 @@ try
             
             % then display cue
             t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
-            Timestamp(['Cue Onset ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], proc, trial);
+            Timestamp(['Cue Onset ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], d.initTime(proc), proc, trial);
             if p.vocal_stroop
                 t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, fullfile(save_file,'_audio'), 'savemode', 2);
             elseif p.manual_stroop
@@ -481,7 +485,7 @@ try
                         t.feedback = 'incorrect';
                     end
                 end
-                Timestamp(['Response ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], proc, trial)
+                Timestamp(['Response ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], d.initTime(proc), proc, trial)
                 % display trialwise feedback
                 DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
                 Screen('Flip', p.win);
@@ -499,14 +503,14 @@ try
             end % end manual stroop coding
             
             % end trial
-            Timestamp(['End of Trial ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], proc, trial);
+            Timestamp(['End of Trial ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], d.initTime(proc), proc, trial);
             
             %% post trial cleanup
             KbQueueRelease();
         end; clear trial;
         
         save(save_file); % so we don't lose all data in a crash
-        Timestamp(['End of Procedure ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], proc, 0);
+        Timestamp(['End of Procedure ' d.procedure_code(proc,2) ' ' d.procedure_code(proc,1)], d.initTime(proc), proc, 0);
         
         % end procedure
     end; clear proc;
@@ -515,7 +519,7 @@ try
     
     save(save_file); % save the data
     
-    Timestamp('End experiment');
+    Timestamp('End experiment', []);
     
     % tell them it's over
     DrawFormattedText(p.win,'done!', 'center', 'center', p.text_colour); % tell them it's over!
