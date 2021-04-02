@@ -24,7 +24,6 @@ proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and 
 % tech settings
 p.screen_num = 0; % if multiple monitors, else 0
 p.buttonbox = 0; % or keyboard
-p.max_height = 600; % in rows for the largest size scale
 % Set fMRI parameters
 if p.scanning
     p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
@@ -95,7 +94,7 @@ elseif p.testing_enabled == 0
         p.PTBsynctests = 1;
     elseif ~p.skip_synctests
         p.PTBsynctests = 0;
-end
+    end
     p.PTBverbosity = 3; % default verbosity for PTB
 end
 Screen('Preference', 'SkipSyncTests', p.PTBsynctests);
@@ -128,27 +127,28 @@ if isnan(d.participant_id); error('no participant number entered'); end
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
 
 % search for a savedir (where the procedure file should be)
-if ~exist(savedir,'dir'); error('no savedir, have you run the procedure generator?'; end
+savedir = fullfile(datadir, [num2str(d.participant_id,'S%02d'), '_',t.exp_type]); % will make a data directory if none exists
+if ~exist(savedir,'dir'); error('no savedir, have you run the procedure generator?'); end
 
 % --- check procedure file exists for this participant --- %
 
 p.procedure_file = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',proc_scriptname,'.mat'];
 disp('searching for procedure file:')
 disp(p.procedure_file)
-if ~exist(p.procedure_file, 'file')
+if ~exist([savedir,filesep,p.procedure_file], 'file')
     error('there is no procedure file for this participant');
 else
     disp('found... loading')
     disp('checking id matches')
-    t.id = load(fullfile(savedir,p.procedure_file),'-mat',d.participant_id);
-    if t.id ~= d.participant_id
+    imported = load(fullfile(savedir,p.procedure_file),'d');
+    if d.participant_id ~= d.participant_id
         error('id from procedure generation does not match')
     else
-        d.all_procedures = load(fullfile(savedir,p.procedure_file),'-mat',d.procedure;
-        d.all_procedure_codes = load(fullfile(savedir,p.procedure_file),'-mat',d.procedure;
-        d.stimulus_matrix = load(fullfile(savedir,p.procedure_file),'-mat',d.stimulus_matrix);
-        p.training_stimuli = load(fullfile(savedir,p.procedure_file),'-mat',d.training_stimulus_matrix);
-
+        d.all_procedures = imported.d.procedure;
+        d.all_procedure_codes = imported.d.procedure_code;
+        d.stimulus_matrix = imported.d.stimulus_matrix;
+        d.training_stimuli = imported.d.training_stimulus_matrix;
+        
         % so we have, if we want:
         %    d.stimulus_matrix
         %    d.training_stimulus_matrix
@@ -157,7 +157,7 @@ else
         %    d.procedure where 3rd dimension corresponds to one procedure
         %    d.procedure_code where 1st dimension corresponds to one procedure
     end
-end
+end; clear imported;
 
 % --- get the procedure information we need for this run --- %
 
@@ -202,8 +202,8 @@ d.timestamps = Timestamp('Initialise timestamp structure', []);
 %----------------------------%
 
 d.results = cell(size(d.procedure,1),5); % initialise a results matrix the length of the trials
-d.results(:,1) = d.attended_feature;
-d.results(:,2) = d.procedure_type;
+d.results(:,1) = {d.attended_feature};
+d.results(:,2) = {d.procedure_type};
 % 3) rt
 % 4) correct (meaningful only for manual, otherwise -2)
 % 5) stimulus index (to get from d.stimulus_matrix the stimulus information)
@@ -225,217 +225,217 @@ try
     WaitSecs(0.5); % warm up
     
     % --- check if training --- %
-
-        if strcmp(d.procedure_type,'training') % if it's a training trial
-            disp('training procedure')
-            t.training = 1;
-            t.training_type = d.attended_feature; % we're going to use a more legible name for this
-        else
-            t.training = 0;
-        end
-        
-        % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
-        DrawFormattedText(p.win, 'Experimenter: start run when ready', 'center', 'center', p.text_colour)
+    
+    if strcmp(d.procedure_type,'training') % if it's a training trial
+        disp('training procedure')
+        t.training = 1;
+        t.training_type = d.attended_feature; % we're going to use a more legible name for this
+    else
+        t.training = 0;
+    end
+    
+    % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
+    DrawFormattedText(p.win, 'Experimenter: start run when ready', 'center', 'center', p.text_colour)
+    Screen('Flip', p.win);
+    t.ts = Timestamp('Instruc press space onset', []);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+    KbWait()
+    
+    
+    % --- wait until TTL (this is after 4 dummy scans) ---
+    if ~p.scanning %msg experimenter
+        WaitSecs(0.1);
+        DrawFormattedText(p.win, 'Dummy mode: press any key to start', 'center', 'center', p.text_colour)
         Screen('Flip', p.win);
         t.ts = Timestamp('Instruc press space onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         KbWait()
+        d.initTime=GetSecs();
         
+    else
+        DrawFormattedText(p.win, 'Waiting for scanner', 'center', 'center', p.text_colour)
+        Screen('Flip', p.win);
+        t.ts = Timestamp('Instruc wait TTL onset', []);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
-        % --- wait until TTL (this is after 4 dummy scans) ---
-        if ~p.scanning %msg experimenter
-            Wait(0.1);
-            DrawFormattedText(p.win, 'Dummy mode: press any key to start', 'center', 'center', p.text_colour)
-            Screen('Flip', p.win);
-            t.ts = Timestamp('Instruc press space onset', []);
-            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            KbWait()
-            d.initTime=GetSecs();
-            
+        %______________________________________________________
+        % CS 19
+        
+        [pulse_time,~,daqstate] = scansync(1,Inf);
+        d.initTime=GetSecs();
+        
+        % NEW
+        t.ts = Timestamp('TR', []);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+    end
+    
+    t.ts = Timestamp(['Start of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+    
+    %% trial loop
+    for trial = 1:size(d.procedure,1)
+        fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
+        t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        t.this_trial = d.procedure(trial,:); % get the trial information
+        t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
+        t.this_size = t.this_trial(2); % get the size of the trial
+        if t.training
+            if strcmp(t.training_type,'colour')
+                t.this_size = 2; % select medium size
+                t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
+                t.corr_colour = d.training_stimuli(find(strcmp(d.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),5);
+            elseif strcmp(t.training_type,'size')
+                t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(:,1),'line')),2));
+            end
         else
-            DrawFormattedText(p.win, 'Waiting for scanner', 'center', 'center', p.text_colour)
-            Screen('Flip', p.win);
-            t.ts = Timestamp('Instruc wait TTL onset', []);
-            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            
-            %______________________________________________________
-            % CS 19
-            
-            [pulse_time,~,daqstate] = scansync(1,Inf);
-            d.initTime=GetSecs();
-            
-            % NEW
-            t.ts = Timestamp('TR', []);
-            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            
+            t.stimulus = cell2mat(d.stimulus_matrix(t.this_stim_idx,2));
+            t.corr_colour = d.stimulus_matrix(t.this_stim_idx,5);
         end
         
-        t.ts = Timestamp(['Start of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        % resize based on the size required
+        t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
+        
+        %             if you want to test
+        % t.stimulus = cell2mat(d.stimulus_matrix(4,2));
+        
+        % set up a queue to collect response info
+        if p.manual_stroop && ~p.buttonbox
+            t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
+        else % if vocal stroop or p.buttonbox
+            t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
+        end
+        t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
+        t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
+        KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
+        KbQueueStart(); % starts delivering keypress info to the queue
+        
+        % iti
+        % get coordinates for centering stimuli from fixation parameters
+        p.xCoords = [-p.fixation_size p.fixation_size 0 0];
+        p.yCoords = [0 0 -p.fixation_size p.fixation_size];
+        p.allCoords = [p.xCoords; p.yCoords];
+        
+        Screen('DrawLines', p.win, p.allCoords, p.fixation_thickness, p.text_colour, [p.xCenter p.yCenter], 2);
+        Screen('Flip', p.win);
+        WaitSecs(p.iti_time);
+        
+        % make the texture and draw it
+        t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
+        Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
+        
+        % then display cue
+        t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
+        t.ts = Timestamp(['Cue Onset ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-
-        %% trial loop
-        for trial = 1:size(d.procedure,1)
-            fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
-            t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
-            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            t.this_trial = d.procedure(trial,:); % get the trial information
-            t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
-            t.this_size = t.this_trial(2); % get the size of the trial
-            if t.training
-                if strcmp(t.training_type,'colour')
-                    t.this_size = 2; % select medium size
-                    t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
-                    t.corr_colour = p.training_stimuli(find(strcmp(p.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),5);
-                elseif strcmp(t.training_type,'size')
-                    t.stimulus = cell2mat(p.training_stimuli(find(strcmp(p.training_stimuli(:,1),'line')),2));
-                end
+        if p.vocal_stroop
+            t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, fullfile(save_file,'_audio'), 'savemode', 2);
+        elseif p.manual_stroop
+            if ~p.buttonbox
+                WaitSecs(p.trial_duration); % wait for trial
             else
-                t.stimulus = cell2mat(d.stimulus_matrix(t.this_stim_idx,2));
-                t.corr_colour = d.stimulus_matrix(t.this_stim_idx,5);
+                t.resp = scansync([],GetSecs+p.trial_duration/1000);
             end
-            
-            % resize based on the size required
-            t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
-            
-            %             if you want to test
-            % t.stimulus = cell2mat(d.stimulus_matrix(4,2));
-            
-            % set up a queue to collect response info
-            if p.manual_stroop && ~p.buttonbox
-                t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
-            else % if vocal stroop or p.buttonbox
-                t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
-            end
-            t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
-            t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
-            KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
-            KbQueueStart(); % starts delivering keypress info to the queue
-            
-            % iti
-            % get coordinates for centering stimuli from fixation parameters
-            p.xCoords = [-p.fixation_size p.fixation_size 0 0];
-            p.yCoords = [0 0 -p.fixation_size p.fixation_size];
-            p.allCoords = [p.xCoords; p.yCoords];
-            
-            Screen('DrawLines', p.win, p.allCoords, p.fixation_thickness, p.text_colour, [p.xCenter p.yCenter], 2);
-            Screen('Flip', p.win);
-            WaitSecs(p.iti_time);
-            
-            % make the texture and draw it
-            t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
-            Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
-            
-            % then display cue
-            t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
-            t.ts = Timestamp(['Cue Onset ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
-            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            if p.vocal_stroop
-                t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, fullfile(save_file,'_audio'), 'savemode', 2);
-            elseif p.manual_stroop
-                if ~p.buttonbox
-                    WaitSecs(p.trial_duration); % wait for trial
-                else
-                    t.resp = scansync([],GetSecs+p.trial_duration/1000);
-                end
-            end
-            %% deal with response
-            
-            % deal with keypress (required for both manual keyboard and quitkey in vocal or p.buttonbox)
-            [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
-            if t.pressed
-                t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
-                if size(t.resp_key_name) > 1; t.resp_key_name = t.resp_key_name{1}; end % just get the first entry (if two are pressed together)
-            else; t.resp_key_name = NaN; end
-            t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
-            
-            % quit if quitkey
-            if strcmp(t.resp_key_name,p.quitkey)
-                save(save_file); % so we don't lose all data
-                fclose('all');
-                error('%s quit by user (p.quitkey pressed)\n', mfilename);
-            end
-            
-            if p.manual_stroop % code response
-                if p.buttonbox
-                    % Get the response button and rt
-                    if any(isfinite(t.resp))
-                        [t.buttontime,t.buttonpress] = min(t.resp); % keypress returns values 1:4
-                        t.rt = t.buttontime-t.cue_onset; % Subtract stim onset time to get the RT
-                        if ismember(t.buttonpress,t.bad_buttons) % code bad buttons as invalid
-                            t.resp_code = 0; % code invalid response
-                            t.feedback = 'no valid response';
-                            t.rt = NaN;
-                        else % get buttonpress as code
-                            t.resp_code = t.buttonpress;
-                        end
-                    else
+        end
+        %% deal with response
+        
+        % deal with keypress (required for both manual keyboard and quitkey in vocal or p.buttonbox)
+        [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
+        if t.pressed
+            t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
+            if size(t.resp_key_name) > 1; t.resp_key_name = t.resp_key_name{1}; end % just get the first entry (if two are pressed together)
+        else; t.resp_key_name = NaN; end
+        t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
+        
+        % quit if quitkey
+        if strcmp(t.resp_key_name,p.quitkey)
+            save(save_file); % so we don't lose all data
+            fclose('all');
+            error('%s quit by user (p.quitkey pressed)\n', mfilename);
+        end
+        
+        if p.manual_stroop % code response
+            if p.buttonbox
+                % Get the response button and rt
+                if any(isfinite(t.resp))
+                    [t.buttontime,t.buttonpress] = min(t.resp); % keypress returns values 1:4
+                    t.rt = t.buttontime-t.cue_onset; % Subtract stim onset time to get the RT
+                    if ismember(t.buttonpress,t.bad_buttons) % code bad buttons as invalid
                         t.resp_code = 0; % code invalid response
                         t.feedback = 'no valid response';
                         t.rt = NaN;
+                    else % get buttonpress as code
+                        t.resp_code = t.buttonpress;
                     end
-                else % if keyboard
-                    t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
-                    % save the response key (as a code)
-                    if t.resp_key_name == p.resp_keys{1}
-                        t.resp_code = 1; % code response 1 pressed
-                    elseif t.resp_key_name == p.resp_keys{2}
-                        t.resp_code = 2; % code response 2 pressed
-                    elseif t.resp_key_name == p.resp_keys{3}
-                        t.resp_code = 3; % code response 2 pressed
-                    else
-                        t.resp_code = 0; % code invalid response
-                        t.feedback = 'no valid response';
-                    end
-                end
-                
-                % score response
-                if strcmp(t.this_feature, 'size')
-                    if t.this_size == t.resp_code
-                        t.correct = 1;
-                        t.feedback = 'correct';
-                    else
-                        t.correct = 0;
-                        t.feedback = 'incorrect';
-                    end
-                elseif strcmp(t.this_feature, 'colour')
-                    if strcmp(p.colours{t.resp_code},t.corr_colour)
-                        t.correct = 1;
-                        t.feedback = 'correct';
-                    else
-                        t.correct = 0;
-                        t.feedback = 'incorrect';
-                    end
-                end
-                t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, trial)
-                d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-                % display trialwise feedback
-                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
-                Screen('Flip', p.win);
-                WaitSecs(p.feedback_time);
-                Screen('Flip', p.win);
-                
-                % collate the results
-                d.results(trial,3) = t.rt;
-                if p.manual_stroop
-                    d.results(trial,4) = t.correct;
                 else
-                    d.results(trial,4) = -2;
+                    t.resp_code = 0; % code invalid response
+                    t.feedback = 'no valid response';
+                    t.rt = NaN;
                 end
-                d.results(trial,5) = t.this_stim_idx;
-            end % end manual stroop coding
+            else % if keyboard
+                t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
+                % save the response key (as a code)
+                if t.resp_key_name == p.resp_keys{1}
+                    t.resp_code = 1; % code response 1 pressed
+                elseif t.resp_key_name == p.resp_keys{2}
+                    t.resp_code = 2; % code response 2 pressed
+                elseif t.resp_key_name == p.resp_keys{3}
+                    t.resp_code = 3; % code response 2 pressed
+                else
+                    t.resp_code = 0; % code invalid response
+                    t.feedback = 'no valid response';
+                end
+            end
             
-            % end trial
-            t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
+            % score response
+            if strcmp(t.this_feature, 'size')
+                if t.this_size == t.resp_code
+                    t.correct = 1;
+                    t.feedback = 'correct';
+                else
+                    t.correct = 0;
+                    t.feedback = 'incorrect';
+                end
+            elseif strcmp(t.this_feature, 'colour')
+                if strcmp(p.colours{t.resp_code},t.corr_colour)
+                    t.correct = 1;
+                    t.feedback = 'correct';
+                else
+                    t.correct = 0;
+                    t.feedback = 'incorrect';
+                end
+            end
+            t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+            % display trialwise feedback
+            DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
+            Screen('Flip', p.win);
+            WaitSecs(p.feedback_time);
+            Screen('Flip', p.win);
             
-            %% post trial cleanup
-            KbQueueRelease();
-        end; clear trial;
+            % collate the results
+            d.results(trial,3) = t.rt;
+            if p.manual_stroop
+                d.results(trial,4) = t.correct;
+            else
+                d.results(trial,4) = -2;
+            end
+            d.results(trial,5) = t.this_stim_idx;
+        end % end manual stroop coding
         
-        save(save_file); % so we don't lose all data in a crash
-        t.ts = Timestamp(['End of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        % end trial
+        t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, trial);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
+        %% post trial cleanup
+        KbQueueRelease();
+    end; clear trial;
+    
+    save(save_file); % so we don't lose all data in a crash
+    t.ts = Timestamp(['End of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+    
     
     %% wrap up
     
@@ -461,6 +461,6 @@ try
 catch err
     save(save_file);
     ShowCursor;
-    sca; %Screen('Close',p.win);
+    Screen('CloseAll');
     rethrow(err);
 end

@@ -15,6 +15,7 @@ t = struct(); % another structure for untidy temp floating variables
 
 % initial settings
 rootdir = pwd; % root directory - used to inform directory mappings
+p.max_height = 600; % in rows for the largest size scale of images
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
 
