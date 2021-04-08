@@ -29,7 +29,7 @@ p.buttonbox = 1; % or keyboard
 if p.scanning
     p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
     % Initialise a scansync session
-    scansync('reset',p.tr)         % also needed to record button box responses
+    scansync('reset',p.tr);         % also needed to record button box responses
 end
 
 % testing settings
@@ -43,7 +43,7 @@ p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-p.size_scales = [0.5,0.7,1]; % scales for image sizing in trial
+p.size_scales = [0.3,0.5,0.7]; % scales for image sizing in trial
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
