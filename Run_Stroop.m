@@ -17,19 +17,17 @@ t = struct(); % another structure for untidy temp floating variables
 rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
-p.scanning = 0;
+p.scanning = 1;
 p.num_blocks = 1;
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile)
 
 % tech settings
 p.screen_num = 0; % if multiple monitors, else 0
-p.buttonbox = 0; % or keyboard
+p.buttonbox = 1; % or keyboard
 % Set fMRI parameters
 if p.scanning
     p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
-    p.num_baseline_triggers = 4;   % Number of triggers we record as a baseline at the start of each block
-    delay = 4000;                  % Wait time for response
     % Initialise a scansync session
     scansync('reset',p.tr)         % also needed to record button box responses
 end
@@ -259,13 +257,10 @@ try
         t.ts = Timestamp('Instruc wait TTL onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
-        %______________________________________________________
-        % CS 19
-        
+        % wait for first trigger scansync
         [pulse_time,~,daqstate] = scansync(1,Inf);
         d.initTime=GetSecs();
         
-        % NEW
         t.ts = Timestamp('TR', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
@@ -341,7 +336,7 @@ try
                 if ~p.buttonbox
                     WaitSecs(p.trial_duration); % wait for trial
                 else
-                    t.resp = scansync([],GetSecs+p.trial_duration/1000);
+                    t.resp = scansync([],GetSecs+p.trial_duration);
                 end
             end
             %% deal with response
@@ -366,6 +361,8 @@ try
                     % Get the response button and rt
                     if any(isfinite(t.resp))
                         [t.buttontime,t.buttonpress] = min(t.resp); % keypress returns values 1:4
+                        disp(t.buttontime)
+                        disp(t.buttonpress)
                         t.rt = t.buttontime-t.cue_onset; % Subtract stim onset time to get the RT
                         if ismember(t.buttonpress,t.bad_buttons) % code bad buttons as invalid
                             t.resp_code = 0; % code invalid response

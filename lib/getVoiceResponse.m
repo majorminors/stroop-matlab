@@ -218,7 +218,7 @@ if ~isempty(filename) % If no file name is provided, nothing is saved.
         wavwrite(transpose(audioData), 44100, 16, horzcat(filename, '.wav'))
     elseif saveMode == 2 % Only .wav
         % Save .wav file
-        wavwrite(transpose(audioData), 44100, 16, horzcat(filename, '.wav'))
+        audiowrite(horzcat(filename, '.wav'), transpose(audioData), 44100, 'BitsPerSample', 16)
     elseif saveMode == 3 % Only plot
         % Save plot
         times = linspace(0, length(audioData(1,:))/s.SampleRate*1000, length(audioData(1,:)));
