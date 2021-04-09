@@ -15,8 +15,8 @@ t = struct(); % another structure for untidy temp floating variables
 
 % initial settings
 rootdir = pwd; % root directory - used to inform directory mappings
-p.vocal_stroop = 0;
-p.manual_stroop = 1;
+p.vocal_stroop = 1;
+p.manual_stroop = 0;
 p.scanning = 1;
 p.num_blocks = 1;
 
@@ -24,7 +24,7 @@ proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and 
 
 % tech settings
 p.screen_num = 0; % if multiple monitors, else 0
-p.buttonbox = 1; % or keyboard
+p.buttonbox = 0; % or keyboard
 % Set fMRI parameters
 if p.scanning
     p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
@@ -100,7 +100,7 @@ Screen('Preference', 'SkipSyncTests', p.PTBsynctests);
 Screen('Preference', 'Verbosity', p.PTBverbosity);
 if p.vocal_stroop
     InitializePsychSound;
-    PsychPortAudio('Verbosity', verbose);
+    PsychPortAudio('Verbosity', 3);
 end
 
 AssertOpenGL; % check Psychtoolbox (on OpenGL) and Screen() is working
@@ -332,7 +332,7 @@ try
             t.ts = Timestamp(['Cue Onset ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             if p.vocal_stroop
-                t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, fullfile(save_file,'_audio'), 'savemode', 2);
+                t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial)], 'savemode', 2);
             elseif p.manual_stroop
                 if ~p.buttonbox
                     WaitSecs(p.trial_duration); % wait for trial
@@ -429,15 +429,16 @@ try
                 WaitSecs(p.feedback_time);
                 Screen('Flip', p.win);
                 
-                % collate the results
-                d.results(trial,3) = {t.rt};
-                if p.manual_stroop
-                    d.results(trial,4) = {t.correct};
-                else
-                    d.results(trial,4) = {-2};
-                end
-                d.results(trial,5) = {t.this_stim_idx};
             end % end manual stroop coding
+            
+            % collate the results
+            d.results(trial,3) = {t.rt};
+            if p.manual_stroop
+                d.results(trial,4) = {t.correct};
+            else
+                d.results(trial,4) = {-2};
+            end
+            d.results(trial,5) = {t.this_stim_idx};
             
             % end trial
             t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
