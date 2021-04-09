@@ -275,6 +275,7 @@ try
         t.ts = Timestamp(['Start of Block  ' d.procedure_type ' ' d.attended_feature], d.initTime, block );
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         %% trial loop
+        t.lastresp = NaN(1,4); % initialise this
         for trial = 1:size(d.procedure,1)
             fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
             t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
@@ -285,8 +286,8 @@ try
             if t.training
                 if strcmp(t.training_type,'colour')
                     t.this_size = 2; % select medium size
-                    t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),2));
-                    t.corr_colour = d.training_stimuli(find(strcmp(d.training_stimuli(t.this_stim_idx,1),p.resp_coding{2,t.this_stim_idx})),5);
+                    t.stimulus = cell2mat(d.training_stimuli(find(strcmp(p.colours(t.this_stim_idx),d.training_stimuli(:,1))),2));
+                    t.corr_colour = p.colours(t.this_stim_idx);
                 elseif strcmp(t.training_type,'size')
                     t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(:,1),'line')),2));
                 end
@@ -336,7 +337,9 @@ try
                 if ~p.buttonbox
                     WaitSecs(p.trial_duration); % wait for trial
                 else
-                    t.resp = scansync([],GetSecs+p.trial_duration);
+                    t.timenow = GetSecs;
+                    [~,~,t.out] = scansync([],t.timenow+p.trial_duration);
+                    t.thisresp = t.out.lastresp(2:5);
                 end
             end
             %% deal with response
@@ -359,23 +362,32 @@ try
             if p.manual_stroop % code response
                 if p.buttonbox
                     % Get the response button and rt
-                    if any(isfinite(t.resp))
-                        [t.buttontime,t.buttonpress] = min(t.resp); % keypress returns values 1:4
-                        disp(t.buttontime)
-                        disp(t.buttonpress)
-                        t.rt = t.buttontime-t.cue_onset; % Subtract stim onset time to get the RT
-                        if ismember(t.buttonpress,t.bad_buttons) % code bad buttons as invalid
+                    if any(t.thisresp)
+                        if isequaln(t.lastresp,t.thisresp) % is equal, but with nans
+                            t.pressed = 0;
                             t.resp_code = 0; % code invalid response
                             t.feedback = 'no valid response';
                             t.rt = NaN;
-                        else % get buttonpress as code
-                            t.resp_code = t.buttonpress;
-                        end
+                        else
+                            tmp1=t.thisresp;
+                            tmp2=t.lastresp;
+                            tmp1(isnan(t.thisresp)) = 0;
+                            tmp2(isnan(t.lastresp)) = 0;
+                            t.pressed = find(tmp1 ~= tmp2);
+                            for iresult = 1:length(t.pressed)
+                                t.pressed(2,iresult) = tmp1(t.pressed(1,iresult))-t.timenow;
+                            end
+                            t.first_press = t.pressed(1,find(t.pressed(2,:) == min(t.pressed(2,:))));
+                            t.resp_code = t.first_press;
+                            t.rt = min(t.pressed(2,:));
+                        end                
                     else
+                        t.pressed = 0;
                         t.resp_code = 0; % code invalid response
                         t.feedback = 'no valid response';
                         t.rt = NaN;
                     end
+                    t.lastresp = t.thisresp;
                 else % if keyboard
                     t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
                     % save the response key (as a code)
