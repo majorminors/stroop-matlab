@@ -18,6 +18,13 @@ rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
 p.scanning = 0;
+p.buttonbox = 0; % or keyboard
+% testing settings
+p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
+p.fullscreen_enabled = 0;
+p.skip_synctests = 0; % skip ptb synctests
+
+% block settings
 p.num_blocks = 2;
 p.num_training_blocks = 1; % will override num_blocks during training
 
@@ -25,18 +32,12 @@ proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and 
 
 % tech settings
 p.screen_num = 0; % if multiple monitors, else 0
-p.buttonbox = 0; % or keyboard
 % Set fMRI parameters
 if p.scanning
     p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
     % Initialise a scansync session
     scansync('reset',p.tr);         % also needed to record button box responses
 end
-
-% testing settings
-p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
-p.fullscreen_enabled = 0;
-p.skip_synctests = 0; % skip ptb synctests
 
 % keys
 p.bad_buttons = 4; % if p.buttonbox, what buttons are invalid? this assumes you're using scansync numbers 1-3 or else you need to address the response coding for correct/incorrect
