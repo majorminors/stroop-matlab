@@ -207,7 +207,6 @@ while t.proc_counter < t.proc_end % while we have procedures to loop through
     d.procedure(:,:,t.proc_counter) = t.trial_mat; % add that trial matrix to the procedure matrix, the third dimension indicates which procedure
     d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type}; % get a code of what procedure is on what page
 end
-d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here as NewShuffle because one computer I was testing on had some old version?))
 
 save(save_file); % save all data to a .mat file
 

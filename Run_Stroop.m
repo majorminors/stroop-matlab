@@ -314,6 +314,8 @@ try
         fprintf('block %u of %u\n',block,p.num_blocks ); % report trial number to command window
         t.ts = Timestamp(['Start of Block  ' d.procedure_type ' ' d.attended_feature], d.initTime, block );
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        % shuffle procedure
+        d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here as NewShuffle because one computer I was testing on had some old version?))
         %% trial loop
         t.lastresp = NaN(1,4); % initialise this
         for trial = 1:size(d.procedure,1)
@@ -521,7 +523,7 @@ try
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     
     % tell them it's over
-    DrawFormattedText(p.win,'done!', 'center', 'center', p.text_colour); % tell them it's over!
+    DrawFormattedText(p.win,'this run is done!', 'center', 'center', p.text_colour); % tell them it's over!
     Screen('Flip', p.win);
     WaitSecs(1);
     Screen('Flip', p.win);
