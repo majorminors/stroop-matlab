@@ -15,10 +15,11 @@ t = struct(); % another structure for untidy temp floating variables
 
 % initial settings
 rootdir = pwd; % root directory - used to inform directory mappings
-p.vocal_stroop = 1;
-p.manual_stroop = 0;
-p.scanning = 1;
-p.num_blocks = 1;
+p.vocal_stroop = 0;
+p.manual_stroop = 1;
+p.scanning = 0;
+p.num_blocks = 2;
+p.num_training_blocks = 1; % will override num_blocks during training
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile)
 
@@ -200,9 +201,9 @@ d.timestamps = Timestamp('Initialise timestamp structure', []);
 % prepopulate results matrix %
 %----------------------------%
 
-d.results = cell(size(d.procedure,1),5); % initialise a results matrix the length of the trials
-d.results(:,1) = {d.attended_feature};
-d.results(:,2) = {d.procedure_type};
+d.results = cell(size(d.procedure,1),5,p.num_blocks); % initialise a results matrix the length of the trials
+d.results(:,1,p.num_blocks) = {d.attended_feature};
+d.results(:,2,p.num_blocks) = {d.procedure_type};
 % 3) rt
 % 4) correct (meaningful only for manual, otherwise -2)
 % 5) stimulus index (to get from d.stimulus_matrix the stimulus information)
@@ -229,6 +230,7 @@ try
         disp('training procedure')
         t.training = 1;
         t.training_type = d.attended_feature; % we're going to use a more legible name for this
+        p.num_blocks = p.num_training_blocks; % override num blocks
     else
         t.training = 0;
     end
@@ -265,6 +267,31 @@ try
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
     end
+    
+    % --- do some instructions --- %
+    
+    t.ts = Timestamp(['Instructions ' d.procedure_type ' ' d.attended_feature], d.initTime);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+    
+    if p.procedure_index == 1
+        do_instructions(p,'first')
+    end
+    if strcmp(d.attended_feature,'colour')
+        do_instructions(p,'colour')
+    elseif strcmp(d.attended_feature,'height')
+        do_instructions(p,'height')
+    end
+    if strcmp(d.procedure_type,'training')
+        do_instructions(p,'training')
+    else
+        if p.practice
+            do_instructions(p,'practice')
+        else
+            do_instructions(p,'test')
+        end
+    end
+    
+    % --- start procedure --- %
     
     t.ts = Timestamp(['Start of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
@@ -379,7 +406,7 @@ try
                             end
                             t.first_press = t.pressed(1,find(t.pressed(2,:) == min(t.pressed(2,:))));
                             t.resp_code = t.first_press;
-                            t.rt = min(t.pressed(2,:));
+                            t.rt = min(t.pressed(2,:)); clear tmp1 tmp2;
                         end                
                     else
                         t.pressed = 0;
@@ -423,22 +450,25 @@ try
                 end
                 t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-                % display trialwise feedback
-                DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
-                Screen('Flip', p.win);
-                WaitSecs(p.feedback_time);
-                Screen('Flip', p.win);
+                
+                if t.training || p.practice
+                    % display trialwise feedback
+                    DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
+                    Screen('Flip', p.win);
+                    WaitSecs(p.feedback_time);
+                    Screen('Flip', p.win);
+                end
                 
             end % end manual stroop coding
             
             % collate the results
-            d.results(trial,3) = {t.rt};
+            d.results(trial,3,block) = {t.rt};
             if p.manual_stroop
-                d.results(trial,4) = {t.correct};
+                d.results(trial,4,block) = {t.correct};
             else
-                d.results(trial,4) = {-2};
+                d.results(trial,4,block) = {-2};
             end
-            d.results(trial,5) = {t.this_stim_idx};
+            d.results(trial,5,block) = {t.this_stim_idx};
             
             % end trial
             t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
@@ -447,6 +477,18 @@ try
             %% post trial cleanup
             KbQueueRelease();
         end; clear trial;
+        
+        % do blockwise feedback
+        if ~t.training || ~p.practice
+            t.percent_correct = round((sum(d.results(:,4))/length(d.results(:,4)))*100);
+            t.pc_string = num2str(t.percent_correct);
+            t.block_feedback = ['You got ' t.pc_string ' correct!'];
+            % display trialwise feedback
+            DrawFormattedText(p.win, t.block_feedback, 'center', 'center', p.text_colour); % display feedback
+            Screen('Flip', p.win);
+            WaitSecs(p.feedback_time);
+            Screen('Flip', p.win);
+        end
         
         save(save_file); % so we don't lose all data in a crash
         t.ts = Timestamp(['End of Block ' d.procedure_type ' ' d.attended_feature], d.initTime);
