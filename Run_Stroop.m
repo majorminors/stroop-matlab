@@ -19,14 +19,15 @@ p.vocal_stroop = 0;
 p.manual_stroop = 1;
 p.scanning = 0;
 p.buttonbox = 0; % or keyboard
+
 % testing settings
 p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
-p.fullscreen_enabled = 0;
+p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
 
 % block settings
-p.num_blocks = 2;
-p.num_training_blocks = 1; % will override num_blocks during training
+p.num_blocks = 2; % overridden to training blocks for training and practice runs
+p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile)
 
@@ -61,8 +62,8 @@ p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 % timing info
 p.iti_time = 0.3; % inter trial inteval time
 p.trial_duration = 1.5; % seconds for the stimuli to be displayed
-p.feedback_time = 0.5; % period to display feedback after response
-p.min_stim_time = 0.2; % time to not show the stimulus
+p.trial_feedback_time = 0.5; % period to display feedback after response
+p.block_feedback_time = 1; % period to display feedback after block
 
 %--------%
 % checks %
@@ -115,11 +116,13 @@ rng('shuffle'); % seed rng using date and time
 
 % set up participant info and save
 t.prompt = {'enter participant number:',...
-    'enter run/procedure number'}; % prompt a dialog to enter subject info
-t.prompt_defaultans = {num2str(99),num2str(1)}; % default answers corresponding to prompts
+    'enter run/procedure number:',...
+    'is this a practice run? (1 or 0 + overridden during training)'}; % prompt a dialog to enter subject info
+t.prompt_defaultans = {num2str(99),num2str(1),num2str(1)}; % default answers corresponding to prompts
 t.prompt_rsp = inputdlg(t.prompt, 'enter participant info', 1, t.prompt_defaultans); % save dialog responses
 d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 p.procedure_index = str2double(t.prompt_rsp{2}); % add the procedure index, so we can pull the trials from the procedure matrix later
+p.practice = str2double(t.prompt_rsp{3});
 
 % check participant info has been entered correctly for the script
 if isnan(d.participant_id); error('no participant number entered'); end
@@ -203,8 +206,9 @@ d.timestamps = Timestamp('Initialise timestamp structure', []);
 %----------------------------%
 
 d.results = cell(size(d.procedure,1),5,p.num_blocks); % initialise a results matrix the length of the trials
-d.results(:,1,p.num_blocks) = {d.attended_feature};
-d.results(:,2,p.num_blocks) = {d.procedure_type};
+% extra dimension for blocks deleted for practice and training
+d.results(:,1,:) = {d.attended_feature};
+d.results(:,2,:) = {d.procedure_type};
 % 3) rt
 % 4) correct (meaningful only for manual, otherwise -2)
 % 5) stimulus index (to get from d.stimulus_matrix the stimulus information)
@@ -225,15 +229,21 @@ try
     HideCursor;
     WaitSecs(0.5); % warm up
     
-    % --- check if training --- %
+    % --- do some edits based on practice/training --- %
     
     if strcmp(d.procedure_type,'training') % if it's a training trial
         disp('training procedure')
         t.training = 1;
         t.training_type = d.attended_feature; % we're going to use a more legible name for this
         p.num_blocks = p.num_training_blocks; % override num blocks
+        d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
+        p.practice = 0; % override practice if accidentally on
     else
         t.training = 0;
+        if p.practice
+            p.num_blocks = p.num_training_blocks; % override num blocks
+            d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
+        end
     end
     
     % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
@@ -241,6 +251,7 @@ try
     Screen('Flip', p.win);
     t.ts = Timestamp('Instruc press space onset', []);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+    WaitSecs(1); % so you hopefully don't have keys down!
     KbWait()
     
     
@@ -251,6 +262,7 @@ try
         Screen('Flip', p.win);
         t.ts = Timestamp('Instruc press space onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        WaitSecs(1); % so you hopefully don't have keys down!
         KbWait()
         d.initTime=GetSecs();
         
@@ -275,11 +287,11 @@ try
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     
     if p.procedure_index == 1
-        do_instructions(p,'first')
+%         do_instructions(p,'first')
     end
     if strcmp(d.attended_feature,'colour')
         do_instructions(p,'colour')
-    elseif strcmp(d.attended_feature,'height')
+    elseif strcmp(d.attended_feature,'size')
         do_instructions(p,'height')
     end
     if strcmp(d.procedure_type,'training')
@@ -456,7 +468,7 @@ try
                     % display trialwise feedback
                     DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
                     Screen('Flip', p.win);
-                    WaitSecs(p.feedback_time);
+                    WaitSecs(p.trial_feedback_time);
                     Screen('Flip', p.win);
                 end
                 
@@ -480,14 +492,14 @@ try
         end; clear trial;
         
         % do blockwise feedback
-        if ~t.training || ~p.practice
-            t.percent_correct = round((sum(d.results(:,4))/length(d.results(:,4)))*100);
+        if ~t.training && ~p.practice
+            t.percent_correct = round((sum(cell2mat(d.results(:,4)))/length(cell2mat(d.results(:,4))))*100);
             t.pc_string = num2str(t.percent_correct);
-            t.block_feedback = ['You got ' t.pc_string ' correct!'];
+            t.block_feedback = ['You got ' t.pc_string '% correct!'];
             % display trialwise feedback
             DrawFormattedText(p.win, t.block_feedback, 'center', 'center', p.text_colour); % display feedback
             Screen('Flip', p.win);
-            WaitSecs(p.feedback_time);
+            WaitSecs(p.block_feedback_time);
             Screen('Flip', p.win);
         end
         
