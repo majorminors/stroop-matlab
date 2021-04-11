@@ -43,6 +43,10 @@ p.numRepeats = 3; % number of repeats to have in a trial (note: we use this to d
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'};
 
+p.fixation_time = 1;
+p.fixation_size = 40; % px
+p.fixation_thickness = 4; % px
+
 % --- dir mapping --- %
 
 addpath(genpath('C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
@@ -177,6 +181,10 @@ try
         t.tests = tmp(1,:); clear tmp % pull the tests into a temp variable
         
         for test = 1:length(t.tests)
+            
+            % --- show a fixation to kick it off --- %
+            doFixation(p.window,p.windowRect, p.fixation_time,p.white,p.fixation_size,p.fixation_thickness);
+            
             t.trialType = t.tests{test};
             
             % --- what are we doing for each test here? --- %
