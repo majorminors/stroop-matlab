@@ -33,10 +33,11 @@ p.scanning = 1;
 p.buttonbox = 1;
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
-p.numTrials = 10;
+p.testTime = 16;
 p.stimTime = 0.5;
 p.itiTime = 0.1;
-p.numRepeats = 3;
+p.numTrials = floor(p.testTime/(p.stimTime+p.itiTime));
+p.numRepeats = 3; % number of repeats to have in a trial (note: we use this to divide trials into segments, and put a repeat in each segment)
 
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'};
@@ -228,28 +229,21 @@ try
             t.thisStim = t.stimuli{t.randomisedOrder(trial)}; % pull it out of the cell
             showText(p,t.thisStim);
             
-            % allow to close with 'q' during trial
-            [keyIsDown, secs, keyCode, deltaSecs] = KbCheck;
-            if keyIsDown;
-                if strcmp(KbName(keyCode),'q');
-                    Screen('CloseAll');
-                    return
-                end
-            end
-            
             % wait for stimulus time
             WaitSecs(p.stimTime);
             
             %% --- iti+saving --- %%
             
             Screen('Flip', p.window);
+              
+            WaitSecs(p.itiTime);
             
             % coding
-            d.results{1,trial} = t.trialType; % code trial type
+            d.results{1,trial,test} = t.trialType; % code trial type
             if any(t.repeatTrials == trial) % if this is a repeat trial
-                d.results{2,trial} = 1;
+                d.results{2,trial,test} = 1;
             else
-                d.results{2,trial} = 0;
+                d.results{2,trial,test} = 0;
             end
             
             % deal with keypress (required for keyboard incl quitkey)
@@ -271,20 +265,19 @@ try
             if p.buttonbox
             else
                 if t.pressed % since I don't think we care what they pressed (and it will have already quit if they wanted to quit)
-                    d.results{3,trial} = 1;
+                    d.results{3,trial,test} = 1;
                 else
-                    d.results{3,trial} = 0;
+                    d.results{3,trial,test} = 0;
                 end
             end
             % code correct or incorrect
-            if d.results{2,trial} == d.results{3,trial} % if they responded when they should have, or didn't when they shouldn't
-                d.results{4,trial} = 1; % correct
+            if d.results{2,trial,test} == d.results{3,trial,test} % if they responded when they should have, or didn't when they shouldn't
+                d.results{4,trial,test} = 1; % correct
             else
-                d.results{4,trial} = 0; % incorrect
+                d.results{4,trial,test} = 0; % incorrect
             end
-            save(save_file); % save all data to a .mat file
             
-            WaitSecs(p.itiTime);
+            save(save_file); % save all data to a .mat file
             
             %% --- post trial cleanup --- %%
             KbQueueRelease();
