@@ -30,7 +30,7 @@ p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % --- dir mapping --- %
 
-addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
+addpath(genpath('C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
 stimdir = fullfile(rootdir, 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
@@ -172,7 +172,9 @@ try
     end
     
     % Wait for two seconds
-%     WaitSecs(2);
+    %     WaitSecs(2);
+    
+    save(save_file); % save all data to a .mat file
     
     % Clear the screen
     sca;
