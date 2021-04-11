@@ -1,7 +1,7 @@
 %% Stroop task
 % Dorian Minors
 % Created: JAN21
-% Last Edit: JAN21
+% Last Edit: APR21
 %% set up
 
 close all;
@@ -252,7 +252,7 @@ try
     t.ts = Timestamp('Instruc press space onset', []);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     WaitSecs(1); % so you hopefully don't have keys down!
-    KbWait()
+    KbWait();
     
     
     % --- wait until TTL (this is after 4 dummy scans) ---
@@ -263,7 +263,7 @@ try
         t.ts = Timestamp('Instruc press space onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         WaitSecs(1); % so you hopefully don't have keys down!
-        KbWait()
+        KbWait();
         d.initTime=GetSecs();
         
     else

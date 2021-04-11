@@ -9,6 +9,7 @@ Screen('Preference', 'SkipSyncTests', 1);
 
 %% Are we scanning??
 scannerstart=0;  %%% Change for scanning session
+ButtonBoxOn; % if button box is being used with scansync
 
 %% Task Parameters
 grey =[128 128 128]; black = [0 0 0]; white = [255 255 255]; %%Colours
@@ -79,7 +80,6 @@ end
 
 %Keyboard and Button Box Responses
 % key=[66 89]; %for button box 'b' 'y'
-% if we need to get button responses: [~,~,respinfo] = scansync([],GetSecs+trialtime?);
 
 %%Instructions
 Screen('TextSize', Win, 41);
@@ -141,9 +141,15 @@ for block = 1:TotalBlocks
             Screen('FillOval',Win,white,newRect); %%if dot trial then make dot
             Dot = 'Yes'; %%are there dots?... write to file
             Screen('Flip',Win); StimTimeOn=GetSecs-initTime;
+            if ButtonBoxOn
+                [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses?
+            end
             WaitSecs(0.5); Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
         else
             Screen('Flip',Win); StimTimeOn=GetSecs-initTime;
+            if ButtonBoxOn
+                [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses?
+            end
             WaitSecs(0.5); Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
             Dot = 'No'; %%are there dots write to file
         end
