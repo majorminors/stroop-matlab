@@ -19,11 +19,12 @@ rootdir = pwd;
 p.testing_enabled = 1;
 
 % this script will loop through the first row of test info, then do a
-% switch operation, I'm using the second row to feed it the information it
-% needs
+% switch operation, I'm using the second row to feed it stimulus information it
+% needs, and the third row to indicate text or image trial
 p.testInfo = ...
     {'words','pseudowords','falsefonts';...
-    'words.txt','pseudowords.txt','falsefonts.txt'};
+    'words.txt','pseudowords.txt','falsefonts.txt';...
+    'text','text','text'};
 
 % set for values when testing not enabled (you need to change testing
 % defaults independently
@@ -190,11 +191,14 @@ try
             % --- what are we doing for each test here? --- %
             switch t.trialType
                 case p.testInfo{1,1}
-                    t.stimuli = makeWordList(p.testInfo{2,1}); % make a word list from the file specified in the second row of the corresponding testinfo column
+                    t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,1}]); % make a word list from the file specified in the second row of the corresponding testinfo column
+                    t.stimDisplayType = p.testInfo{3,1};
                 case p.testInfo{1,2}
-                    t.stimuli = makeWordList(p.testInfo{2,2}); % make a word list from the file specified in the second row of the corresponding testinfo column
+                    t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,2}]); % make a word list from the file specified in the second row of the corresponding testinfo column
+                    t.stimDisplayType = p.testInfo{3,2};
                 case p.testInfo{1,3}
-                    t.stimuli = makeWordList(p.testInfo{2,2});
+                    t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,2}]);
+                    t.stimDisplayType = p.testInfo{3,3};
                     % make this false fonts and do something different here I
                     % think
             end
@@ -236,9 +240,12 @@ try
                 KbQueueStart(); % starts delivering keypress info to the queue
                 
                 % --- pull and display the stimulus for the trial --- %
-                %     showImage(p,imageLocation);
                 t.thisStim = t.stimuli{t.randomisedOrder(trial)}; % pull it out of the cell
-                showText(p,t.thisStim);
+                if strcmp(t.stimDisplayType, 'image')
+                    showImage(p,t.thisStim);
+                elseif strcmp(t.stimDisplayType, 'text')
+                    showText(p,t.thisStim);
+                end
                 
                 % wait for stimulus time
                 WaitSecs(p.stimTime);
