@@ -1,6 +1,7 @@
 function showImage(p,imageLocation)
 
-theImage = imread(imageLocation);
+[theImage,~,theImgAlpha] = imread(imageLocation);
+theImage(:,:,4) = theImgAlpha; % add the alpha channel to the image
 
 % Get the size of the image
 [s1, s2, s3] = size(theImage);

@@ -23,8 +23,8 @@ p.testing_enabled = 1;
 % needs, and the third row to indicate text or image trial
 p.testInfo = ...
     {'words','pseudowords','falsefonts';...
-    'words.txt','pseudowords.txt','falsefonts.txt';...
-    'text','text','text'};
+    'words.txt','pseudowords.txt',['ffstim',filesep,'words'];...
+    'text','text','image'};
 
 % set for values when testing not enabled (you need to change testing
 % defaults independently
@@ -162,8 +162,8 @@ try
     [p.xCenter, p.yCenter] = RectCenter(p.windowRect);
     
     % Set up alpha-blending for smooth (anti-aliased) lines
-    Screen('BlendFunction', p.window, 'GL_SRC_ALPHA', 'GL_ONE_MINUS_SRC_ALPHA');
-    
+    Screen('BlendFunction', p.window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     % instructions
     showText(p,'TASK: PRESS A BUTTON IF YOU SEE\nTHE SAME THING TWICE IN A ROW');
     WaitSecs(1); % so you hopefully don't have keys down!
@@ -197,10 +197,10 @@ try
                     t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,2}]); % make a word list from the file specified in the second row of the corresponding testinfo column
                     t.stimDisplayType = p.testInfo{3,2};
                 case p.testInfo{1,3}
-                    t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,2}]);
+                    t.path = [stimdir,filesep,p.testInfo{2,3}];
+                    tmp = dir(t.path);
+                    t.stimuli = {tmp.name}; clear tmp
                     t.stimDisplayType = p.testInfo{3,3};
-                    % make this false fonts and do something different here I
-                    % think
             end
             
             % --- randomise the trial order and generate repeats --- %
@@ -242,7 +242,7 @@ try
                 % --- pull and display the stimulus for the trial --- %
                 t.thisStim = t.stimuli{t.randomisedOrder(trial)}; % pull it out of the cell
                 if strcmp(t.stimDisplayType, 'image')
-                    showImage(p,t.thisStim);
+                    showImage(p,fullfile(t.path,t.thisStim));
                 elseif strcmp(t.stimDisplayType, 'text')
                     showText(p,t.thisStim);
                 end
