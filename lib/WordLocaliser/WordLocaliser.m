@@ -2,7 +2,7 @@
 % Dorian Minors
 % Created: APR21
 % Last Edit: APR21
-% heavily borrowed from Peter Scarfe tutorials
+% built on base of https://peterscarfe.com/textdemo.html
 %% set up
 
 close all;
@@ -16,7 +16,7 @@ t = struct(); % another structure for untidy temp floating variables
 
 rootdir = pwd;
 
-p.testing_enabled = 1;
+p.testing_enabled = 0;
 
 % this script will loop through the first row of test info, then do a
 % switch operation, I'm using the second row to feed it stimulus information it
@@ -28,7 +28,7 @@ p.testInfo = ...
 
 % set for values when testing not enabled (you need to change testing
 % defaults independently
-p.fullscreen_enabled = 1;
+p.fullscreen_enabled = 0;
 p.skip_synctests = 0;
 p.scanning = 1;
 p.buttonbox = 1;
@@ -51,8 +51,9 @@ p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 
 % --- dir mapping --- %
-
-addpath(genpath('\\cbsu\data\Group\Woolgar-Lab\projects\Dorian\stroop\stroop-matlab\lib'));%'C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
+getslashes = strfind(rootdir,filesep);
+oneupfldr = rootdir(1:getslashes(end)-1);
+addpath(genpath(oneupfldr)); clear getslashes oneupfldr%'C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
 stimdir = fullfile(rootdir, 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
@@ -288,6 +289,7 @@ try
                     t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
                 else
                     t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
+                    [~, t.buttonPressed, ~] = buttonboxWaiter(p.stimTime+p.itiTime);
                 end
                 t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
                 t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
@@ -335,7 +337,7 @@ try
                 end
                 
                 % code whether they responded or not
-                if p.buttonbox; [~, t.pressed, ~] = buttonboxWaiter(p.stimTime); end
+                if p.buttonbox; clear t.pressed; t.pressed = t.buttonPressed; end % override this during button box trials
                 if t.pressed % since I don't think we care what they pressed (and it will have already quit if they wanted to quit)
                     d.results{3,trial,test,block} = 1;
                 else

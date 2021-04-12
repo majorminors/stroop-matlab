@@ -16,7 +16,7 @@ scansyncTriggersWeCareAbout = 2:5;
 
 persistent lastresp
 if isempty(lastresp) % initialise for first use
-    lastresp = NaN(length(scansyncTriggersWeCareAbout));
+    lastresp = NaN(1,length(scansyncTriggersWeCareAbout));
 end
 
 timeNow = GetSecs;

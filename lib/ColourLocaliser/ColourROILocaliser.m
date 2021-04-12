@@ -2,14 +2,14 @@
 %%12.03.2017 Jade Jackson%%
 
 clear all;
-Screen('Preference', 'ConserveVRAM', 64)
+% Screen('Preference', 'ConserveVRAM', 64)
 
 %% Disables Synchronisation %% Comment out for testing
 Screen('Preference', 'SkipSyncTests', 1);
 
 %% Are we scanning??
-scannerstart=0;  %%% Change for scanning session
-ButtonBoxOn; % if button box is being used with scansync
+scannerstart=1;  %%% Change for scanning session
+ButtonBoxOn=1; % if button box is being used with scansync
 
 %% Task Parameters
 grey =[128 128 128]; black = [0 0 0]; white = [255 255 255]; %%Colours
@@ -42,11 +42,13 @@ end
 Screen('Flip',Win); %%flip on window
 HideCursor;%%hide mouse
 center = [Rect(3)/2, Rect(4)/2]; %%centre of screen
-centRect10=[0 0 1440 900]; %%entire size of screen (CHANGE FOR SCANNER)
+centRect10=[0 0 1920 1080]; %%entire size of screen (CHANGE FOR SCANNER)
 FixationCross = [0,0,-15,15;15,-15,0,0]; %%cross
 SizeOval = CenterRect([0 0 6 6], Rect); %%size of circle for passive condition
 maindir = pwd; %%main directory
-addpath(genpath('C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
+getslashes = strfind(maindir,filesep);
+oneupfldr = maindir(1:getslashes(end)-1);
+addpath(genpath(oneupfldr)); clear getslashes oneupfldr
 outdir = fullfile(maindir, 'ColourLocaliser', subjectnostr); if exist(outdir)~=7; mkdir(outdir); end %%Directory for Data output
 outfile = fullfile(outdir, ['ColLocaliser.txt']); %%file name
 fid = fopen(outfile,'a');
@@ -61,19 +63,12 @@ if scannerstart %% do we want the scanner if so then set to 1 earlier?
     TR = 1.208;                  % TR in s % CHANGE THIS LINE
     % Initialise a scansync session
     scansync('reset',TR);         % also needed to record button box responses
-    MRITriggerKey ='t';
-    DrawFormattedText(Win, 'Waiting for scanner', 'center', 'center', [255 255 255]);
+    DrawFormattedText(Win, 'Waiting for scanner', 'center', 'center', white)
     Screen('Flip', Win);
-    Data=0;
-    while Data==0
-        [KeyIsDown,secs,keyCode]=KbCheck();
-        if find(keyCode==1)==KbName(MRITriggerKey);
-            Data=1;
-            [pulse_time,~,daqstate] = scansync(1,Inf);
-            initTime=GetSecs; %%timestamp
-        end
-    end
-    Screen('Flip', Win);
+    
+    % wait for first trigger scansync
+    [pulse_time,~,daqstate] = scansync(1,Inf);
+    initTime=GetSecs();
 else
     initTime=GetSecs; %%timestamp
 end
@@ -142,20 +137,26 @@ for block = 1:TotalBlocks
             Dot = 'Yes'; %%are there dots?... write to file
             Screen('Flip',Win); StimTimeOn=GetSecs-initTime;
             if ButtonBoxOn
-                [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses?
+                [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses? 
+                aButtonPressed = any(all_buttons_pressed);
+            else
+                aButtonPressed = -1;
             end
             WaitSecs(0.5); Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
         else
             Screen('Flip',Win); StimTimeOn=GetSecs-initTime;
             if ButtonBoxOn
-                [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses?
+                [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses? 
+                aButtonPressed = any(all_buttons_pressed);
+            else
+                aButtonPressed = -1;
             end
             WaitSecs(0.5); Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
             Dot = 'No'; %%are there dots write to file
         end
-        
-        fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t \n',...
-            'Subject',subjectno,'InitialTime',initTime','BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff);
+
+        fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
+            'Subject',subjectno,'InitialTime',initTime','BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
         
     end %%end trial loop
 end %%end block loop
