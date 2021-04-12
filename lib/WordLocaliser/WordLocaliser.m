@@ -44,13 +44,15 @@ p.numRepeats = 3; % number of repeats to have in a trial (note: we use this to d
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'};
 
+p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
+
 p.fixation_time = 1;
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 
 % --- dir mapping --- %
 
-addpath(genpath('C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
+addpath(genpath('\\cbsu\data\Group\Woolgar-Lab\projects\Dorian\stroop\stroop-matlab\lib'));%'C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
 stimdir = fullfile(rootdir, 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
@@ -95,6 +97,14 @@ end
 Screen('Preference', 'SkipSyncTests', p.PTBsynctests);
 Screen('Preference', 'Verbosity', p.PTBverbosity);
 % PsychDefaultSetup(2);
+
+
+% --- start up the scanner --- %
+
+if p.scanning
+    % Initialise a scansync session
+    scansync('reset',p.tr);         % also needed to record button box responses
+end
 
 % --- screen stuff --- %
 
@@ -144,6 +154,9 @@ save(save_file); % save all data to a .mat file
 
 %% begin
 
+d.initTime = [];
+d.timestamps = Timestamp('Initialise timestamp structure', []);
+
 try
     if p.fullscreen_enabled % zero out p.window_size if p.fullscreen_enabled = 1
         p.window_size=[];
@@ -163,8 +176,42 @@ try
     
     % Set up alpha-blending for smooth (anti-aliased) lines
     Screen('BlendFunction', p.window, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
+    showText(p,'Experimenter: start run when ready');
+    t.ts = Timestamp('Instruc press space onset', []);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+    WaitSecs(1); % so you hopefully don't have keys down!
+    KbWait();
+    
+    
+    % --- wait until TTL (this is after 4 dummy scans) ---
+    if ~p.scanning %msg experimenter
+        WaitSecs(0.1);
+        showText(p,'Dummy mode: press any key to start');
+        t.ts = Timestamp('Instruc press space onset', []);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        WaitSecs(1); % so you hopefully don't have keys down!
+        KbWait();
+        d.initTime=GetSecs();
+        
+    else
+        showText(p, 'Waiting for scanner')
+        t.ts = Timestamp('Instruc wait TTL onset', []);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+        % wait for first trigger scansync
+        [pulse_time,~,daqstate] = scansync(1,Inf);
+        d.initTime=GetSecs();
+        
+        t.ts = Timestamp('TR', []);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+    end
 
     % instructions
+    t.ts = Timestamp('Instructions', []);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     showText(p,'TASK: PRESS A BUTTON IF YOU SEE\nTHE SAME THING TWICE IN A ROW');
     WaitSecs(1); % so you hopefully don't have keys down!
     if p.buttonbox
@@ -174,11 +221,13 @@ try
     end
     
     for block = 1:p.numBlocks
+        t.ts = Timestamp('Block start', d.initTime,block);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         %%------------------------------------%%
         %% shuffle test order and begin tests %%
         %%------------------------------------%%
-        tmp = Shuffle(p.testInfo,[1]); % shuffle testInfo cols (keep rows)
+        tmp = NewShuffle(p.testInfo,[1]); % shuffle testInfo cols (keep rows)
         t.tests = tmp(1,:); clear tmp % pull the tests into a temp variable
         
         for test = 1:length(t.tests)
@@ -187,6 +236,9 @@ try
             doFixation(p.window,p.windowRect, p.fixation_time,p.white,p.fixation_size,p.fixation_thickness);
             
             t.trialType = t.tests{test};
+            
+            t.ts = Timestamp(['Test start ',t.trialType], d.initTime,block);
+            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             
             % --- what are we doing for each test here? --- %
             switch t.trialType
@@ -227,6 +279,9 @@ try
             end; clear i
             
             for trial = 1:p.numTrials
+                
+                t.ts = Timestamp(['Trial start ',t.trialType], d.initTime,block,trial);
+                d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 
                 % -- set up the key queue -- %
                 if ~p.buttonbox
@@ -280,14 +335,13 @@ try
                 end
                 
                 % code whether they responded or not
-                if p.buttonbox
+                if p.buttonbox; [~, t.pressed, ~] = buttonboxWaiter(p.stimTime); end
+                if t.pressed % since I don't think we care what they pressed (and it will have already quit if they wanted to quit)
+                    d.results{3,trial,test,block} = 1;
                 else
-                    if t.pressed % since I don't think we care what they pressed (and it will have already quit if they wanted to quit)
-                        d.results{3,trial,test,block} = 1;
-                    else
-                        d.results{3,trial,test,block} = 0;
-                    end
+                    d.results{3,trial,test,block} = 0;
                 end
+                
                 % code correct or incorrect
                 if d.results{2,trial,test,block} == d.results{3,trial,test,block} % if they responded when they should have, or didn't when they shouldn't
                     d.results{4,trial,test,block} = 1; % correct
