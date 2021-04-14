@@ -28,13 +28,13 @@ p.testInfo = ...
 
 % set for values when testing not enabled (you need to change testing
 % defaults independently
-p.fullscreen_enabled = 0;
+p.fullscreen_enabled = 1;
 p.skip_synctests = 0;
 p.scanning = 1;
 p.buttonbox = 1;
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
-p.numBlocks = 2;
+p.numBlocks = 13;
 p.testTime = 16;
 p.stimTime = 0.5;
 p.itiTime = 0.1;
@@ -251,7 +251,7 @@ try
                     t.stimDisplayType = p.testInfo{3,2};
                 case p.testInfo{1,3}
                     t.path = [stimdir,filesep,p.testInfo{2,3}];
-                    tmp = dir(t.path);
+                    tmp = dir([t.path,filesep,'*.png']);
                     t.stimuli = {tmp.name}; clear tmp
                     t.stimDisplayType = p.testInfo{3,3};
             end
@@ -289,7 +289,6 @@ try
                     t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
                 else
                     t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
-                    [~, t.buttonPressed, ~] = buttonboxWaiter(p.stimTime+p.itiTime);
                 end
                 t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
                 t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
@@ -305,7 +304,11 @@ try
                 end
                 
                 % wait for stimulus time
-                WaitSecs(p.stimTime);
+                if p.buttonbox
+                    [~, t.buttonPressed, ~] = buttonboxWaiter(p.stimTime+p.itiTime);
+                else
+                    WaitSecs(p.stimTime);
+                end
                 
                 %% --- iti+saving --- %%
                 
@@ -350,8 +353,6 @@ try
                 else
                     d.results{4,trial,test,block} = 0; % incorrect
                 end
-                
-                save(save_file); % save all data to a .mat file
                 
                 %% --- post trial cleanup --- %%
                 KbQueueRelease();

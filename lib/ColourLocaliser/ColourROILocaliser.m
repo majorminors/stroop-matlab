@@ -5,7 +5,7 @@ clear all;
 % Screen('Preference', 'ConserveVRAM', 64)
 
 %% Disables Synchronisation %% Comment out for testing
-Screen('Preference', 'SkipSyncTests', 1);
+% Screen('Preference', 'SkipSyncTests', 1);
 
 %% Are we scanning??
 scannerstart=1;  %%% Change for scanning session
@@ -16,7 +16,7 @@ grey =[128 128 128]; black = [0 0 0]; white = [255 255 255]; %%Colours
 Cue1 = 'TASK: FIND THE DOT';
 
 %%Trials/Blocks/Runs
-TotalTrials = 30; TotalBlocks = 20;
+TotalTrials = 30; TotalBlocks = 40;
 
 %%Input && Ordering
 subjectnostr = input('Subject Number?: ','s');
@@ -52,6 +52,7 @@ addpath(genpath(oneupfldr)); clear getslashes oneupfldr
 outdir = fullfile(maindir, 'ColourLocaliser', subjectnostr); if exist(outdir)~=7; mkdir(outdir); end %%Directory for Data output
 outfile = fullfile(outdir, ['ColLocaliser.txt']); %%file name
 fid = fopen(outfile,'a');
+savefile = fullfile(outdir, ['ColLocaliser_data']); save(savefile);
 if exist(outfile) %Print Error if Outfile Exists
     disp('WARNING: OUTPUT FILE EXISTS'); %Screen('CloseAll')
 end
@@ -140,25 +141,30 @@ for block = 1:TotalBlocks
                 [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses? 
                 aButtonPressed = any(all_buttons_pressed);
             else
-                aButtonPressed = -1;
+                aButtonPressed = -1;WaitSecs(0.5);
             end
-            WaitSecs(0.5); Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
+            %WaitSecs(0.5); 
+            Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
         else
             Screen('Flip',Win); StimTimeOn=GetSecs-initTime;
             if ButtonBoxOn
                 [~,~,all_buttons_pressed] = buttonboxWaiter(0.5); % this seems dangerous - how much do we care about buttonpresses? 
                 aButtonPressed = any(all_buttons_pressed);
             else
-                aButtonPressed = -1;
+                aButtonPressed = -1;WaitSecs(0.5);
             end
-            WaitSecs(0.5); Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
+            %WaitSecs(0.5); 
+            Screen('Flip',Win); StimTimeOff=GetSecs-initTime;
             Dot = 'No'; %%are there dots write to file
         end
 
         fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
-            'Subject',subjectno,'InitialTime',initTime','BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
+            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
         
     end %%end trial loop
+    
+    save(savefile);
+    
 end %%end block loop
 
 Screen('CloseAll')

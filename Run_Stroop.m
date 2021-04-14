@@ -17,16 +17,16 @@ t = struct(); % another structure for untidy temp floating variables
 rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
-p.scanning = 0;
-p.buttonbox = 0; % or keyboard
+p.scanning = 1;
+p.buttonbox = 1; % or keyboard
 
 % testing settings
-p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
+p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
 
 % block settings
-p.num_blocks = 2; % overridden to training blocks for training and practice runs
+p.num_blocks = 10; % overridden to training blocks for training and practice runs
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile)
@@ -455,12 +455,17 @@ try
                         t.feedback = 'incorrect';
                     end
                 elseif strcmp(d.attended_feature, 'colour')
-                    if strcmp(p.colours{t.resp_code},t.corr_colour)
-                        t.correct = 1;
-                        t.feedback = 'correct';
+                    if t.resp_code>0;
+                        if strcmp(p.colours{t.resp_code},t.corr_colour)
+                            t.correct = 1;
+                            t.feedback = 'correct';
+                        else
+                            t.correct = 0;
+                            t.feedback = 'incorrect';
+                        end
                     else
                         t.correct = 0;
-                        t.feedback = 'incorrect';
+                        t.feedback = 'invalid';
                     end
                 end
                 t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
