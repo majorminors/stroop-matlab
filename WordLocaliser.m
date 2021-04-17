@@ -26,6 +26,8 @@ p.testInfo = ...
     'words.txt','pseudowords.txt',['ffstim',filesep,'words'];...
     'text','text','image'};
 
+p.saveFolderName = 'manual'; % saves in datadir>saveFoldername>S##
+
 % set for values when testing not enabled (you need to change testing
 % defaults independently
 p.fullscreen_enabled = 1;
@@ -51,10 +53,8 @@ p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 
 % --- dir mapping --- %
-getslashes = strfind(rootdir,filesep);
-oneupfldr = rootdir(1:getslashes(end)-1);
-addpath(genpath(oneupfldr)); clear getslashes oneupfldr%'C:\Users\dorian\Downloads\02-dev\stroop-matlab\lib'));
-stimdir = fullfile(rootdir, 'stimuli');
+addpath(genpath(fullfile(rootdir,'lib')));
+stimdir = fullfile(rootdir,'lib','WordLocaliser','stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
 
@@ -131,7 +131,7 @@ d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 if isnan(d.participant_id); error('no participant number entered'); end
 
 save_file_name = [num2str(d.participant_id,'S%02d'),'_',mfilename];
-save_file = fullfile(datadir, save_file_name);
+save_file = fullfile(datadir,p.saveFolderName,num2str(d.participant_id,'S%02d'),save_file_name);
 if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
     warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
     while 1 % loop forever until y or n
