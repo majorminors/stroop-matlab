@@ -489,6 +489,7 @@ try
                 d.results(trial,4,block) = {-2};
             end
             d.results(trial,5,block) = {t.this_stim_idx};
+            d.results(trial,6,block) = {t.this_size};
             
             % end trial
             t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);

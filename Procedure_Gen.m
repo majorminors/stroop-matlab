@@ -20,7 +20,7 @@ p.vocal_stroop = 1;
 p.manual_stroop = 0;
 
 % directory mapping
-addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
+addpath(genpath(fullfile(rootdir, 'lib'))); % add tools
 stimdir = fullfile(rootdir, 'lib', 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
