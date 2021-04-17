@@ -173,10 +173,12 @@ d.procedure_type = t.procedure_code{2};
 % do a lil check
 
 disp('procedure list: ');
-disp(d.all_prodecure_codes);
-fprintf('and you chose procedure %s\nwhich is procedure type: %s, and\n attended feature: %s', p.procedure_index,d.procedure_type,d.attended_feature);
+disp(d.all_procedure_codes);
+fprintf('you chose procedure %1.0f\n',p.procedure_index);
+fprintf('procedure type: %s\n',d.procedure_type);
+fprintf('with attended feature: %s\n',d.attended_feature);
 
-t.prompt = 'look right (y/n)? [y]';
+t.prompt = 'look right (y/n)? [y]\n';
 t.ok = input(t.prompt,'s');
 if isempty(t.ok); t.ok = 'y'; end 
 if ~strcmp(t.ok,'y'); error('no good'); end
