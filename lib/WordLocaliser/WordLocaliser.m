@@ -164,6 +164,8 @@ try
     end
     % Open an on screen window
     [p.window, p.windowRect] = PsychImaging('OpenWindow', p.screenNumber, p.grey, p.window_size);
+
+    HideCursor;
     
     % Get the size of the on screen window
     [p.screenXpixels, p.screenYpixels] = Screen('WindowSize', p.window);
