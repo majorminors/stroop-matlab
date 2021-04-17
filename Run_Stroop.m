@@ -234,6 +234,7 @@ try
     if strcmp(d.procedure_type,'training') % if it's a training trial
         disp('training procedure')
         t.training = 1;
+            if p.scanning = 1; warning('you had p.scanning on, but this is a training block so im going to turn it off');p.scanning = 0; end
         t.training_type = d.attended_feature; % we're going to use a more legible name for this
         p.num_blocks = p.num_training_blocks; % override num blocks
         d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
@@ -242,6 +243,7 @@ try
         t.training = 0;
         if p.practice
             p.num_blocks = p.num_training_blocks; % override num blocks
+            if p.scanning = 1; warning('you had p.scanning on, but this is a practice block so im going to turn it off');p.scanning = 0; end
             d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
         end
     end
