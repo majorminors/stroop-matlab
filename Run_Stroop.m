@@ -54,7 +54,7 @@ p.sizes = {'short','medium','tall'}; % used to create response coding
 p.vocal_threshold = 0.1; % between 0 and 1
 
 % define display info
-p.bg_colour = [255 255 255];
+p.bg_colour = [255/2 255/2 255/2]; % this is white/2=grey
 p.text_colour = [0 0 0]; % colour of instructional text
 p.text_size = 40; % size of text
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
@@ -145,7 +145,7 @@ else
     disp('found... loading')
     disp('checking id matches')
     imported = load(fullfile(savedir,p.procedure_file),'d');
-    if d.participant_id ~= d.participant_id
+    if d.participant_id ~= imported.d.participant_id
         error('id from procedure generation does not match')
     else
         d.all_procedures = imported.d.procedure;
@@ -169,6 +169,16 @@ d.procedure = d.all_procedures(:,:,p.procedure_index);
 t.procedure_code = d.all_procedure_codes(p.procedure_index,:);
 d.attended_feature = t.procedure_code{1};
 d.procedure_type = t.procedure_code{2};
+
+% do a lil check
+
+fprintf('attended feature is: %s\n', d.attended_feature);
+fprintf('procedure_type is: %s\n', d.procedure_type);
+
+t.prompt = 'look right (y/n)? [y]';
+t.ok = input(t.prompt,'s');
+if isempty(t.ok); t.ok = 'y'; end 
+if ~strcmp(t.ok,'y'); error('no good'); end
 
 % --- create a save file name --- %
 
@@ -503,7 +513,7 @@ try
         
         % do blockwise feedback
         if ~t.training && ~p.practice
-            t.percent_correct = round((sum(cell2mat(d.results(:,4)))/length(cell2mat(d.results(:,4))))*100);
+            t.percent_correct = round((sum(cell2mat(d.results(:,4,block)))/length(cell2mat(d.results(:,4,block))))*100);
             t.pc_string = num2str(t.percent_correct);
             t.block_feedback = ['You got ' t.pc_string '% correct!'];
             % display trialwise feedback
