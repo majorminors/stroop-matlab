@@ -36,8 +36,9 @@ if isnan(d.participant_id); error('no participant number entered'); end
 
 % create a structure for saving
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
+if ~exist(fullfile(datadir,t.exp_type),'dir'); mkdir(fullfile(datadir,t.exp_type)); end % check or create a folder for this type of stroop
 % create a savedir
-savedir = fullfile(datadir, [num2str(d.participant_id,'S%02d'), '_',t.exp_type]); % will make a data directory if none exists
+savedir = fullfile(datadir,t.exp_type,num2str(d.participant_id,'S%02d')); % will make a data directory if none exists
 if ~exist(savedir,'dir'); mkdir(savedir); end
 % create a save file name
 save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename];

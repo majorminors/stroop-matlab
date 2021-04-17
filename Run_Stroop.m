@@ -131,7 +131,8 @@ if isnan(d.participant_id); error('no participant number entered'); end
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
 
 % search for a savedir (where the procedure file should be)
-savedir = fullfile(datadir, [num2str(d.participant_id,'S%02d'), '_',t.exp_type]); % will make a data directory if none exists
+if ~exist(fullfile(datadir,t.exp_type),'dir'); error('no experiment type directory, have you chosen the right experiment type?'); end
+savedir = fullfile(datadir,t.exp_type,num2str(d.participant_id,'S%02d')); % will error if none exists
 if ~exist(savedir,'dir'); error('no savedir, have you run the procedure generator?'); end
 
 % --- check procedure file exists for this participant --- %
