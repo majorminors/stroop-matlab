@@ -334,6 +334,7 @@ try
         %% trial loop
         t.lastresp = NaN(1,4); % initialise this
         for trial = 1:size(d.procedure,1)
+            if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
             fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
             t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure

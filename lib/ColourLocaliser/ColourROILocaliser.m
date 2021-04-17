@@ -116,6 +116,7 @@ for block = 1:TotalBlocks
     end
     
     for trial = 1:TotalTrials
+        if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
         TrialStart=GetSecs-initTime; %%Timestamp
         offsetValue1 = []; offsetValue1 =randi([-550 550]); %%movement of square x
         offsetValue2 = []; offsetValue2 = randi([-250 250]); %%movement of square y

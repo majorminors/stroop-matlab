@@ -156,7 +156,7 @@ save(save_file); % save all data to a .mat file
 %% begin
 
 d.initTime = [];
-d.timestamps = Timestamp('Initialise timestamp structure', []);
+d.timestamps = wordLocTimestamp('Initialise timestamp structure', []);
 
 try
     if p.fullscreen_enabled % zero out p.window_size if p.fullscreen_enabled = 1
@@ -182,7 +182,7 @@ try
     
     % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
     showText(p,'Experimenter: start run when ready');
-    t.ts = Timestamp('Instruc press space onset', []);
+    t.ts = wordLocTimestamp('Instruc press space onset', []);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     WaitSecs(1); % so you hopefully don't have keys down!
     KbWait();
@@ -192,7 +192,7 @@ try
     if ~p.scanning %msg experimenter
         WaitSecs(0.1);
         showText(p,'Dummy mode: press any key to start');
-        t.ts = Timestamp('Instruc press space onset', []);
+        t.ts = wordLocTimestamp('Instruc press space onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         WaitSecs(1); % so you hopefully don't have keys down!
         KbWait();
@@ -200,20 +200,20 @@ try
         
     else
         showText(p, 'Waiting for scanner')
-        t.ts = Timestamp('Instruc wait TTL onset', []);
+        t.ts = wordLocTimestamp('Instruc wait TTL onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         % wait for first trigger scansync
         [pulse_time,~,daqstate] = scansync(1,Inf);
         d.initTime=GetSecs();
         
-        t.ts = Timestamp('TR', []);
+        t.ts = wordLocTimestamp('TR', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
     end
 
     % instructions
-    t.ts = Timestamp('Instructions', []);
+    t.ts = wordLocTimestamp('Instructions', []);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     showText(p,'TASK: PRESS A BUTTON IF YOU SEE\nTHE SAME THING TWICE IN A ROW');
     WaitSecs(1); % so you hopefully don't have keys down!
@@ -224,7 +224,7 @@ try
     end
     
     for block = 1:p.numBlocks
-        t.ts = Timestamp('Block start', d.initTime,block);
+        t.ts = wordLocTimestamp('Block start', d.initTime,block);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         %%------------------------------------%%
@@ -240,7 +240,7 @@ try
             
             t.trialType = t.tests{test};
             
-            t.ts = Timestamp(['Test start ',t.trialType], d.initTime,block);
+            t.ts = wordLocTimestamp(['Test start ',t.trialType], d.initTime,block,test);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             
             % --- what are we doing for each test here? --- %
@@ -282,8 +282,9 @@ try
             end; clear i
             
             for trial = 1:p.numTrials
+                if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
                 
-                t.ts = Timestamp(['Trial start ',t.trialType], d.initTime,block,trial);
+                t.ts = wordLocTimestamp(['Trial start ',t.trialType], d.initTime,block,test,trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 
                 % -- set up the key queue -- %
@@ -355,19 +356,31 @@ try
                 else
                     d.results{4,trial,test,block} = 0; % incorrect
                 end
+
+                t.ts = wordLocTimestamp(['Trial end ',t.trialType], d.initTime,block,test,trial);
+                d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 
                 %% --- post trial cleanup --- %%
                 KbQueueRelease();
                 
             end; clear trial
+
+            t.ts = wordLocTimestamp(['Test end ',t.trialType], d.initTime,block,test);
+            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             
             save(save_file); % save all data to a .mat file
             
         end; clear test
+
+        t.ts = wordLocTimestamp('Block end', d.initTime,block);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         save(save_file); % save all data to a .mat file
         
     end; clear block
+
+    t.ts = wordLocTimestamp('Experiment end', d.initTime,block);
+    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     
     % --- wrap up --- %
     save(save_file); % save all data to a .mat file
