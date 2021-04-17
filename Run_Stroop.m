@@ -172,8 +172,9 @@ d.procedure_type = t.procedure_code{2};
 
 % do a lil check
 
-fprintf('attended feature is: %s\n', d.attended_feature);
-fprintf('procedure_type is: %s\n', d.procedure_type);
+disp('procedure list: ');
+disp(d.all_prodecure_codes);
+fprintf('and you chose procedure %s\nwhich is procedure type: %s, and\n attended feature: %s', p.procedure_index,d.procedure_type,d.attended_feature);
 
 t.prompt = 'look right (y/n)? [y]';
 t.ok = input(t.prompt,'s');
