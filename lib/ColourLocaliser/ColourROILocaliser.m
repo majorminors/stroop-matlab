@@ -82,7 +82,11 @@ Screen('TextSize', Win, 41);
 TextToPut = Cue1;
 DrawFormattedText(Win, TextToPut, 'center','center',white);
 Screen('Flip',Win); %%flip on
-WaitSecs(4);
+if scannerstart % wait for participant keypress
+    scansync([2:5],Inf);
+else
+    KbWait();
+end
 Screen('Flip',Win); %%flip off
 
 %%START OF BLOCK LOOP%%
@@ -158,8 +162,10 @@ for block = 1:TotalBlocks
             Dot = 'No'; %%are there dots write to file
         end
 
-        fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
-            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
+        TrialEnd=GetSecs-initTime; %%Timestamp
+
+        fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
+            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
         
     end %%end trial loop
     
