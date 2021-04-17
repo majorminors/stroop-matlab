@@ -7,6 +7,10 @@ clear all;
 %% Disables Synchronisation %% Comment out for testing
 % Screen('Preference', 'SkipSyncTests', 1);
 
+% choose stroop type (will save in data>saveFolderName>participant #)
+saveFolderName = 'manual';
+
+
 %% Are we scanning??
 scannerstart=1;  %%% Change for scanning session
 ButtonBoxOn=1; % if button box is being used with scansync
@@ -46,16 +50,13 @@ centRect10=[0 0 1920 1080]; %%entire size of screen (CHANGE FOR SCANNER)
 FixationCross = [0,0,-15,15;15,-15,0,0]; %%cross
 SizeOval = CenterRect([0 0 6 6], Rect); %%size of circle for passive condition
 maindir = pwd; %%main directory
-getslashes = strfind(maindir,filesep);
-oneupfldr = maindir(1:getslashes(end)-1);
-addpath(genpath(oneupfldr)); clear getslashes oneupfldr
-outdir = fullfile(maindir, 'ColourLocaliser', subjectnostr); if exist(outdir)~=7; mkdir(outdir); end %%Directory for Data output
+outdir = fullfile(maindir,'data',saveFolderName,num2str(subjectno,'S%02d'); if ~exist(outdir,'dir'); mkdir(outdir); end %%Directory for Data output
 outfile = fullfile(outdir, ['ColLocaliser.txt']); %%file name
 fid = fopen(outfile,'a');
-savefile = fullfile(outdir, ['ColLocaliser_data']); save(savefile);
 if exist(outfile) %Print Error if Outfile Exists
     disp('WARNING: OUTPUT FILE EXISTS'); %Screen('CloseAll')
 end
+stimdir = fullfile(maindir,lib,'ColourLocaliserStimuli');
 
 % start with TTL pulse
 keyCode=zeros(255,1); %%clear the keyboard responses
@@ -110,9 +111,9 @@ for block = 1:TotalBlocks
     
     CurrentCue=ContextCueOrder(block); %%Get current task
     if CurrentCue == 1
-        BlockCondition = 'Colour'; Directory = fullfile(maindir,'Colour'); %%where to find images
+        BlockCondition = 'Colour'; Directory = fullfile(stimdir,'Colour'); %%where to find images
     elseif CurrentCue == 2
-        BlockCondition = 'Greyscale'; Directory = fullfile(maindir,'Grey'); %%where to find images
+        BlockCondition = 'Greyscale'; Directory = fullfile(stimdir,'Grey'); %%where to find images
     end
     
     for trial = 1:TotalTrials
@@ -166,7 +167,7 @@ for block = 1:TotalBlocks
         TrialEnd=GetSecs-initTime; %%Timestamp
 
         fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
-            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'TrialTime',TrialStart,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
+            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'TrialEnd',TrialEnd,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
         
     end %%end trial loop
     
