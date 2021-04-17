@@ -50,13 +50,15 @@ centRect10=[0 0 1920 1080]; %%entire size of screen (CHANGE FOR SCANNER)
 FixationCross = [0,0,-15,15;15,-15,0,0]; %%cross
 SizeOval = CenterRect([0 0 6 6], Rect); %%size of circle for passive condition
 maindir = pwd; %%main directory
-outdir = fullfile(maindir,'data',saveFolderName,num2str(subjectno,'S%02d'); if ~exist(outdir,'dir'); mkdir(outdir); end %%Directory for Data output
+addpath(genpath(fullfile(maindir,'lib'))); % add lib path
+outdir = fullfile(maindir,'data',saveFolderName,num2str(subjectno,'S%02d'));
+if ~exist(outdir,'dir'); mkdir(outdir); end %%Directory for Data output
 outfile = fullfile(outdir, ['ColLocaliser.txt']); %%file name
 fid = fopen(outfile,'a');
 if exist(outfile) %Print Error if Outfile Exists
     disp('WARNING: OUTPUT FILE EXISTS'); %Screen('CloseAll')
 end
-stimdir = fullfile(maindir,lib,'ColourLocaliserStimuli');
+stimdir = fullfile(maindir,'lib','ColourLocaliserStimuli');
 
 % start with TTL pulse
 keyCode=zeros(255,1); %%clear the keyboard responses
