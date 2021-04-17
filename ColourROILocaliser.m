@@ -95,10 +95,10 @@ Screen('Flip',Win); %%flip off
 %%START OF BLOCK LOOP%%
 for block = 1:TotalBlocks
     BlockTime=GetSecs-initTime; %%Timestamp
-    if block > 1
-        Screen('DrawLines', Win, FixationCross, 4, white, center);
-        Screen('Flip',Win); WaitSecs(3); Screen('Flip',Win) %%off
-    end
+%     if block > 1
+%         Screen('DrawLines', Win, FixationCross, 4, white, center);
+%         Screen('Flip',Win); WaitSecs(3); Screen('Flip',Win) %%off
+%     end
     
     %%Make a vector of the possible trial conditions
     TrialList = []; %% Clear previous block variable
