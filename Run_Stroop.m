@@ -46,7 +46,16 @@ p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-p.size_scales = [0.3,0.5,0.7]; % scales for image sizing in trial
+%p.size_scales = [0.3,0.5,0.7]; % scales for image sizing in trial
+
+set(0,'units','pixels'); pix = get(0,'screensize');
+set(0,'units','inches'); inch = get(0,'screensize');
+res = pix./inch;
+scaleFactor = 150/res;
+p.size_scales = {...
+    [100,NaN],... % this will scale to [rows,cols] and NaN will be autoresized
+    [200,NaN],...
+    [300,NaN]};
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
@@ -65,12 +74,6 @@ p.trial_duration = 1.5; % seconds for the stimuli to be displayed
 p.trial_feedback_time = 0.5; % period to display feedback after response
 p.block_feedback_time = 1; % period to display feedback after block
 
-%--------%
-% checks %
-%--------%
-
-if p.vocal_stroop && p.manual_stroop; error('you have selected both vocal and manual stroop!'); end
-if p.vocal_stroop && p.buttonbox; error('you are trying to do both button box and vocal, are you sure?'); end
 
 %-------------------%
 % directory mapping %
