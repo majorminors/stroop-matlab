@@ -5,15 +5,15 @@ clear all;
 % Screen('Preference', 'ConserveVRAM', 64)
 
 %% Disables Synchronisation %% Comment out for testing
-% Screen('Preference', 'SkipSyncTests', 1);
+Screen('Preference', 'SkipSyncTests', 1);
 
 % choose stroop type (will save in data>saveFolderName>participant #)
 saveFolderName = 'manual';
 
 
 %% Are we scanning??
-scannerstart=1;  %%% Change for scanning session
-ButtonBoxOn=1; % if button box is being used with scansync
+scannerstart=0;  %%% Change for scanning session
+ButtonBoxOn=0; % if button box is being used with scansync
 
 %% Task Parameters
 grey =[128 128 128]; black = [0 0 0]; white = [255 255 255]; %%Colours
@@ -40,6 +40,19 @@ else
     ContextCueOrder=repmat([2,1],1,24); %%presentation of task context
 end
 
+maindir = pwd; %%main directory
+addpath(genpath(fullfile(maindir,'lib'))); % add lib path
+% search for a savedir (where the procedure file should be)
+if ~exist(fullfile(maindir,'data',saveFolderName),'dir'); error('no experiment type (saveFolderName) directory, have you chosen the right experiment type?'); end
+outdir = fullfile(maindir,'data',saveFolderName,num2str(subjectno,'S%02d'));
+if ~exist(outdir,'dir'); error('no save directory for this participant, have you run the procedure generator?'); end
+outfile = fullfile(outdir, ['ColLocaliser.txt']); %%file name
+fid = fopen(outfile,'a');
+if exist(outfile) %Print Error if Outfile Exists
+    disp('WARNING: OUTPUT FILE EXISTS'); %Screen('CloseAll')
+end
+stimdir = fullfile(maindir,'lib','ColourLocaliserStimuli');
+
 %%Screen Parameters & Main Parameters
 [Win, Rect] = Screen('OpenWindow', 0, grey,[]); %%actual
 %[Win, Rect] = Screen('OpenWindow', 0, black, [0 0 400 400]); %testing
@@ -49,16 +62,6 @@ center = [Rect(3)/2, Rect(4)/2]; %%centre of screen
 centRect10=[0 0 1920 1080]; %%entire size of screen (CHANGE FOR SCANNER)
 FixationCross = [0,0,-15,15;15,-15,0,0]; %%cross
 SizeOval = CenterRect([0 0 6 6], Rect); %%size of circle for passive condition
-maindir = pwd; %%main directory
-addpath(genpath(fullfile(maindir,'lib'))); % add lib path
-outdir = fullfile(maindir,'data',saveFolderName,num2str(subjectno,'S%02d'));
-if ~exist(outdir,'dir'); mkdir(outdir); end %%Directory for Data output
-outfile = fullfile(outdir, ['ColLocaliser.txt']); %%file name
-fid = fopen(outfile,'a');
-if exist(outfile) %Print Error if Outfile Exists
-    disp('WARNING: OUTPUT FILE EXISTS'); %Screen('CloseAll')
-end
-stimdir = fullfile(maindir,'lib','ColourLocaliserStimuli');
 
 % start with TTL pulse
 keyCode=zeros(255,1); %%clear the keyboard responses
@@ -119,6 +122,8 @@ for block = 1:TotalBlocks
     end
     
     for trial = 1:TotalTrials
+        Screen('DrawLines', Win, FixationCross, 4, white, center); %%draw fixation cross
+        Screen('Flip',Win);
         if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
         TrialStart=GetSecs-initTime; %%Timestamp
         offsetValue1 = []; offsetValue1 =randi([-550 550]); %%movement of square x

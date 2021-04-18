@@ -16,7 +16,7 @@ t = struct(); % another structure for untidy temp floating variables
 
 rootdir = pwd;
 
-p.testing_enabled = 0;
+p.testing_enabled = 1;
 
 % script looks in stimdir/{cellstring} for png stimuli
 p.tests = {'words','pseudowords','falsefonts'};
@@ -52,18 +52,6 @@ addpath(genpath(fullfile(rootdir,'lib')));
 stimdir = fullfile(rootdir,'lib','WordLocaliser','stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
-
-% % pull in stimuli locations
-% t.extension = '.jpg';
-% t.dir_info = dir(['*' t.extension]);
-% t.fileNames = {t.dir_info.name};
-% t.stimuli = cell(numel(t.fileNames),2);
-% t.stimuli(:,1) = regexprep(t.fileNames, t.extension,'');
-% %don't think we need this - think we have the ability to do location now
-% %with fullfile(stimdir,t.stimuli(n))
-% % for ii = 1:numel(t.fileNames)
-% %    t.stimuli{ii,2} = dlmread(t.fileNames{ii});
-% % end
 
 % --- PTB and defaults --- %
 
@@ -125,8 +113,13 @@ d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 % check participant info has been entered correctly for the script
 if isnan(d.participant_id); error('no participant number entered'); end
 
+% search for a savedir (where the procedure file should be)
+if ~exist(fullfile(datadir,p.saveFolderName),'dir'); error('no experiment type (p.saveFolderName) directory, have you chosen the right experiment type?'); end
+savedir = fullfile(datadir,p.saveFolderName,num2str(d.participant_id,'S%02d')); % will error if none exists
+if ~exist(savedir,'dir'); error('no save directory for this participant, have you run the procedure generator?'); end
+
 save_file_name = [num2str(d.participant_id,'S%02d'),'_',mfilename];
-save_file = fullfile(datadir,p.saveFolderName,num2str(d.participant_id,'S%02d'),save_file_name);
+save_file = fullfile(savedir,save_file_name);
 if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
     warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
     while 1 % loop forever until y or n
@@ -234,7 +227,7 @@ try
             % --- get the stimuli for this test --- %
 
             t.path = [stimdir,filesep,t.trialType]; % we'll use this later to show the image
-            tmp = dir(t.path,filesep,'*.png']); % get the info of all the images
+            tmp = dir([t.path,filesep,'*.png']); % get the info of all the images
             t.stimuli = {tmp.name}; clear tmp % pull in just their names as a cell array
             
             % --- show a fixation to kick it off --- %
