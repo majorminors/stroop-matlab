@@ -126,7 +126,7 @@ for block = 1:TotalBlocks
         Screen('Flip',Win);
         if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
         TrialStart=GetSecs-initTime; %%Timestamp
-        offsetValue1 = []; offsetValue1 =randi([-550 550]); %%movement of square x
+        offsetValue1 = []; offsetValue1 =randi([-250 250]); %%movement of square x
         offsetValue2 = []; offsetValue2 = randi([-250 250]); %%movement of square y
         newRect = []; newRect = OffsetRect(SizeOval,offsetValue1,offsetValue2); %%Rect for oval block 3
         
@@ -177,8 +177,6 @@ for block = 1:TotalBlocks
             'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'TrialEnd',TrialEnd,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
         
     end %%end trial loop
-    
-    save(savefile);
     
 end %%end block loop
 
