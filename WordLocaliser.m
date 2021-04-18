@@ -18,13 +18,8 @@ rootdir = pwd;
 
 p.testing_enabled = 0;
 
-% this script will loop through the first row of test info, then do a
-% switch operation, I'm using the second row to feed it stimulus information it
-% needs, and the third row to indicate text or image trial
-p.testInfo = ...
-    {'words','pseudowords','falsefonts';...
-    'words.txt','pseudowords.txt',['ffstim',filesep,'words'];...
-    'text','text','image'};
+% script looks in stimdir/{cellstring} for png stimuli
+p.tests = {'words','pseudowords','falsefonts'};
 
 p.saveFolderName = 'manual'; % saves in datadir>saveFoldername>S##
 
@@ -230,33 +225,23 @@ try
         %%------------------------------------%%
         %% shuffle test order and begin tests %%
         %%------------------------------------%%
-        tmp = NewShuffle(p.testInfo,[1]); % shuffle testInfo cols (keep rows)
-        t.tests = tmp(1,:); clear tmp % pull the tests into a temp variable
+        t.tests = NewShuffle(p.tests); % shuffle testInfo cols (keep rows)
         
         for test = 1:length(t.tests)
+
+            t.trialType = t.tests{test};
+
+            % --- get the stimuli for this test --- %
+
+            t.path = [stimdir,filesep,t.trialType]; % we'll use this later to show the image
+            tmp = dir(t.path,filesep,'*.png']); % get the info of all the images
+            t.stimuli = {tmp.name}; clear tmp % pull in just their names as a cell array
             
             % --- show a fixation to kick it off --- %
             doFixation(p.window,p.windowRect, p.fixation_time,p.white,p.fixation_size,p.fixation_thickness);
             
-            t.trialType = t.tests{test};
-            
             t.ts = wordLocTimestamp(['Test start ',t.trialType], d.initTime,block,test);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            
-            % --- what are we doing for each test here? --- %
-            switch t.trialType
-                case p.testInfo{1,1}
-                    t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,1}]); % make a word list from the file specified in the second row of the corresponding testinfo column
-                    t.stimDisplayType = p.testInfo{3,1};
-                case p.testInfo{1,2}
-                    t.stimuli = makeWordList([stimdir,filesep,p.testInfo{2,2}]); % make a word list from the file specified in the second row of the corresponding testinfo column
-                    t.stimDisplayType = p.testInfo{3,2};
-                case p.testInfo{1,3}
-                    t.path = [stimdir,filesep,p.testInfo{2,3}];
-                    tmp = dir([t.path,filesep,'*.png']);
-                    t.stimuli = {tmp.name}; clear tmp
-                    t.stimDisplayType = p.testInfo{3,3};
-            end
             
             % --- randomise the trial order and generate repeats --- %
             t.randomisedOrder = zeros(1,p.numTrials); % init this with all same values
@@ -274,7 +259,7 @@ try
             end
             % now make that element+1 be the repeat - do it in a seperate loop, so
             % we don't accidentally do a repeat of something that was already
-            % repeated (which would exponentially increase that item)
+            % repeated (which could exponentially increase that item)
             for i = 1:p.numRepeats
                 repeatIndex = find(t.randomisedOrder == t.toBeRepeated(i));
                 t.randomisedOrder(repeatIndex+1) = t.toBeRepeated(i);
@@ -300,15 +285,11 @@ try
                 
                 % --- pull and display the stimulus for the trial --- %
                 t.thisStim = t.stimuli{t.randomisedOrder(trial)}; % pull it out of the cell
-                if strcmp(t.stimDisplayType, 'image')
-                    showImage(p,fullfile(t.path,t.thisStim));
-                elseif strcmp(t.stimDisplayType, 'text')
-                    showText(p,t.thisStim);
-                end
+                showImage(p,fullfile(t.path,t.thisStim));
                 
                 % wait for stimulus time
                 if p.buttonbox
-                    [~, t.buttonPressed, ~] = buttonboxWaiter(p.stimTime+p.itiTime);
+                    [~, t.buttonPressed, ~] = buttonboxWaiter(p.stimTime);
                 else
                     WaitSecs(p.stimTime);
                 end
@@ -343,8 +324,8 @@ try
                 end
                 
                 % code whether they responded or not
-                if p.buttonbox; clear t.pressed; t.pressed = t.buttonPressed; end % override this during button box trials
-                if t.pressed % since I don't think we care what they pressed (and it will have already quit if they wanted to quit)
+                if p.buttonbox; clear t.pressed; t.pressed = t.buttonPressed; end % override this during button box trials since we don't care about keyboard keys during button box trials (it will have already quit if p.quitkey pressed)
+                if t.pressed
                     d.results{3,trial,test,block} = 1;
                 else
                     d.results{3,trial,test,block} = 0;
