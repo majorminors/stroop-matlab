@@ -21,7 +21,7 @@ p.scanning = 1;
 p.buttonbox = 1; % or keyboard
 
 % testing settings
-p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
+p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
 
@@ -48,14 +48,15 @@ p.quitkey = {'q'}; % keep this for vocal and manual
 % stimulus settings
 %p.size_scales = [0.3,0.5,0.7]; % scales for image sizing in trial
 
-set(0,'units','pixels'); pix = get(0,'screensize');
-set(0,'units','inches'); inch = get(0,'screensize');
-res = pix./inch;
-scaleFactor = 150/res;
-p.size_scales = {...
-    [100,NaN],... % this will scale to [rows,cols] and NaN will be autoresized
-    [200,NaN],...
-    [300,NaN]};
+set(0,'units','pixels'); pix = get(0,'screensize'); % get screen size in pixels
+set(0,'units','inches'); inch = get(0,'screensize'); % get screensize in inches
+% get the pixels per inch
+res = pix./inch; ppi = res(3:4); if ppi(1) ~= ppi(2); error('this res thing only works if height and width are the same ppi, and they are not somehow'); else ppi = ppi(1); end
+scaleFactor = 150/ppi; % find out what the scale factor is to get it to 150ppi (same as stroop js) 
+p.size_scales = {... % these are the stimulus sizes
+    [100*scaleFactor,NaN],... % this will scale to [rows (y pixels),cols (x pixels)] and NaN will be autoresized (i.e. maintain aspect ratio)
+    [200*scaleFactor,NaN],...
+    [300*scaleFactor,NaN]}; clear pix inch res ppi scaleFactor;
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
@@ -359,7 +360,7 @@ try
             end
             
             % resize based on the size required
-            t.stimulus = imresize(t.stimulus,p.size_scales(t.this_size));
+            t.stimulus = imresize(t.stimulus,p.size_scales{t.this_size});
             
             %             if you want to test
             % t.stimulus = cell2mat(d.stimulus_matrix(4,2));
