@@ -61,6 +61,7 @@ HideCursor;%%hide mouse
 center = [Rect(3)/2, Rect(4)/2]; %%centre of screen
 centRect10=[0 0 1920 1080]; %%entire size of screen (CHANGE FOR SCANNER)
 FixationCross = [0,0,-15,15;15,-15,0,0]; %%cross
+FixationCrossBg = [0,0,-17,17;17,-17,0,0];
 SizeOval = CenterRect([0 0 6 6], Rect); %%size of circle for passive condition
 
 % start with TTL pulse
@@ -144,7 +145,8 @@ for block = 1:TotalBlocks
         Image= fullfile(Directory, [StrStim '.jpg']); %%find stimulus for this trial
         ImageTexture=Screen('MakeTexture', Win, imread(Image)); %%make image texture
         Screen('DrawTextures', Win, ImageTexture, [],centRect10); %%draw image
-        Screen('DrawLines', Win, FixationCross, 4, white, center); %%draw fixation cross
+        Screen('DrawLines', Win, FixationCrossBg, 8, white/2, center); %%draw gray fixation cross
+        Screen('DrawLines', Win, FixationCross, 4, white, center); %%draw gray fixation cross
         
         if intersect(trial,DotsOccur)
             Screen('FillOval',Win,white,newRect); %%if dot trial then make dot
