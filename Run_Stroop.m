@@ -20,10 +20,10 @@ p.manual_stroop = 1;
 
 % --- tech settings --- %
 p.testing_enabled = 0; % 1 will override tech settings and replace with testing defaults (see defaults section)
-p.scanning = 1;
-p.buttonbox = 1; % or keyboard
+p.scanning = 0;
+p.buttonbox = 0; % or keyboard
 p.fullscreen_enabled = 1;
-p.skip_synctests = 0; % skip ptb synctests
+p.skip_synctests = 1; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
 p.screen_distance = 156.5; % cbu mri = 1565mm 
 p.screen_width = 69.84; % cbu mri = 698.4mm
@@ -101,7 +101,7 @@ elseif p.testing_enabled == 0
     end
     p.PTBverbosity = 3; % default verbosity for PTB
 end
-`
+
 % --- psychtoolbox setup --- %
 AssertOpenGL; % check Psychtoolbox (on OpenGL) and Screen() is working
 
