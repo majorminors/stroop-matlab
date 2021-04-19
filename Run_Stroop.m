@@ -13,27 +13,30 @@ p = struct(); % est structure for parameter values
 d = struct(); % est structure for trial data
 t = struct(); % another structure for untidy temp floating variables
 
-% initial settings
+% --- initial settings --- %
 rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
+
+% --- tech settings --- %
+p.testing_enabled = 0; % 1 will override tech settings and replace with testing defaults (see defaults section)
 p.scanning = 1;
 p.buttonbox = 1; % or keyboard
-
-% testing settings
-p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
+% p.ppi = 0; % will try to estimate with 0
+p.screen_distance = 156.5; % cbu mri = 1565mm 
+p.screen_width = 69.84; % cbu mri = 698.4mm
+p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
+p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % block settings
 p.num_blocks = 10; % overridden to training blocks for training and practice runs
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
-proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile)
+proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile) - hasty workaround for abstracting this script
 
-% tech settings
-p.screen_num = 0; % if multiple monitors, else 0
-% Set fMRI parameters
+% --- set fMRI parameters --- %
 if p.scanning
     p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
     % Initialise a scansync session
@@ -41,33 +44,18 @@ if p.scanning
 end
 
 % keys
-p.bad_buttons = 4; % if p.buttonbox, what buttons are invalid? this assumes you're using scansync numbers 1-3 or else you need to address the response coding for correct/incorrect
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-%p.size_scales = [0.3,0.5,0.7]; % scales for image sizing in trial
-
-set(0,'units','pixels'); pix = get(0,'screensize'); % get screen size in pixels
-set(0,'units','inches'); inch = get(0,'screensize'); % get screensize in inches
-% get the pixels per inch
-res = pix./inch; ppi = res(3:4); if ppi(1) ~= ppi(2); error('this res thing only works if height and width are the same ppi, and they are not somehow'); else ppi = ppi(1); end
-scaleFactor = ppi/150; % find out what the scale factor is to get it to 150ppi (same as stroop js) 
-p.size_scales = {... % these are the stimulus sizes
-    [100*scaleFactor,NaN],... % this will scale to [rows (y pixels),cols (x pixels)] and NaN will be autoresized (i.e. maintain aspect ratio)
-    [200*scaleFactor,NaN],...
-    [300*scaleFactor,NaN]}; clear pix inch res ppi scaleFactor;
+tmp.screen_distance = 50; tmp.screen_width = 30; tmp.resolution = 150; % approximation of jsPsych screen (after resizing to 150dpi)?
+p.stim_heights = [pix2angle(tmp,100),pix2angle(tmp,200),pix2angle(tmp,300)]; % in visual angle
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
-p.sizes = {'short','medium','tall'}; % used to create response coding
+p.sizes = {'short','medium','tall'}; % used to create response coding (dont think this is actually used. maybe in a subfunction? Or maybe no longer need this)
 p.vocal_threshold = 0.1; % between 0 and 1
 
-% define display info
-p.bg_colour = [255/2 255/2 255/2]; % this is white/2=grey
-p.text_colour = [0 0 0]; % colour of instructional text
-p.text_size = 40; % size of text
-p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % timing info
 p.iti_time = 0.3; % inter trial inteval time
@@ -75,26 +63,36 @@ p.trial_duration = 1.5; % seconds for the stimuli to be displayed
 p.trial_feedback_time = 0.5; % period to display feedback after response
 p.block_feedback_time = 1; % period to display feedback after block
 
+% --- some checks --- %
+if p.vocal_stroop && p.manual_stroop; error('you cannot do both vocal and manual stroop'); end
+if ~p.buttonbox && p.scanning; error('you probably dont want to scan without the button box'); end
 
 %-------------------%
 % directory mapping %
 %-------------------%
 
-%if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on pc
-addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path (includes moving_dots function which is required for dot motion, as well as an external copy of subfunctions for backwards compatibility with MATLAB)
+%if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on cbu pc
+addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
 stimdir = fullfile(rootdir, 'lib', 'stimuli');
 datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
 if ~exist(datadir,'dir'); mkdir(datadir); end
 
-%--------------------%
-% psychtoolbox setup %
-%--------------------%
+%----------%
+% defaults %
+%----------%
+
+KbName('UnifyKeyNames'); % makes key mappings compatible (mac/win)
+rng('shuffle'); % seed rng using date and time
 
 % testing setup
 if p.testing_enabled == 1
     p.PTBsynctests = 1; % PTB will skip synctests if 1
     p.PTBverbosity = 1; % PTB will only display critical warnings with 1
     Screen('Preference', 'ConserveVRAM', 64); % for working on a vm, we need this enabled
+    p.scanning = 0;
+    p.buttonbox = 0; % or keyboard
+    p.fullscreen_enabled = 0;
+    p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 elseif p.testing_enabled == 0
     if p.skip_synctests
         p.PTBsynctests = 1;
@@ -103,6 +101,10 @@ elseif p.testing_enabled == 0
     end
     p.PTBverbosity = 3; % default verbosity for PTB
 end
+`
+% --- psychtoolbox setup --- %
+AssertOpenGL; % check Psychtoolbox (on OpenGL) and Screen() is working
+
 Screen('Preference', 'SkipSyncTests', p.PTBsynctests);
 Screen('Preference', 'Verbosity', p.PTBverbosity);
 if p.vocal_stroop
@@ -110,9 +112,34 @@ if p.vocal_stroop
     PsychPortAudio('Verbosity', 3);
 end
 
-AssertOpenGL; % check Psychtoolbox (on OpenGL) and Screen() is working
-KbName('UnifyKeyNames'); % makes key mappings compatible (mac/win)
-rng('shuffle'); % seed rng using date and time
+% --- screen stuff --- %
+
+% get the screen numbers
+p.screens = Screen('Screens'); % funny difference pc to other oses, but doesn't matter in cbu fMRI
+
+% draw to the external screen if available
+p.screen_num = max(p.screens);
+
+% % define display info
+% if ~p.ppi % try to estimate ppi
+%     set(0,'units','pixels'); pix = get(0,'screensize'); % get screen size in pixels
+%     set(0,'units','inches'); inch = get(0,'screensize'); % get screensize in inches
+%     % get the pixels per inch
+%     res = pix./inch; p.ppi = res(3:4); if p.ppi(1) ~= p.ppi(2); error('this res thing only works if height and width are the same p.ppi, and they are not somehow'); else p.ppi = p.ppi(1); end
+% end; clear pix inch res;
+% scaleFactor = p.ppi/150; % find out what the scale factor is to get it to 150ppi (same as stroop js) 
+
+p.size_scales = {... % scales rows (y pixels), auto cols (x pixels) (i.e. maintain aspect ratio)
+    [angle2pix(p,p.stim_heights(1)),NaN],... 
+    [angle2pix(p,p.stim_heights(2)),NaN],...
+    [angle2pix(p,p.stim_heights(3)),NaN]}; clear scaleFactor;
+
+p.black = BlackIndex(p.screen_num); % essentially [0 0 0]
+p.white = WhiteIndex(p.screen_num);
+p.grey = p.white / 2; % essentially [255/2 255/2 255/2]
+p.bg_colour = p.grey;
+p.text_colour = p.black; % colour of instructional text
+p.text_size = 40; % size of text
 
 %-------------------%
 % participant setup %
