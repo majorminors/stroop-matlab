@@ -12,8 +12,8 @@ saveFolderName = 'manual';
 
 
 %% Are we scanning??
-scannerstart=0;  %%% Change for scanning session
-ButtonBoxOn=0; % if button box is being used with scansync
+scannerstart=1;  %%% Change for scanning session
+ButtonBoxOn=1; % if button box is being used with scansync
 
 %% Task Parameters
 grey =[128 128 128]; black = [0 0 0]; white = [255 255 255]; %%Colours
@@ -89,7 +89,7 @@ Screen('TextSize', Win, 41);
 TextToPut = Cue1;
 DrawFormattedText(Win, TextToPut, 'center','center',white);
 Screen('Flip',Win); %%flip on
-if scannerstart % wait for participant keypress
+if ButtonBoxOn % wait for participant keypress
     scansync([2:5],Inf);
 else
     KbWait();
