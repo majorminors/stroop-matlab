@@ -209,6 +209,9 @@ while t.proc_counter < t.proc_end % while we have procedures to loop through
     d.procedure_code(t.proc_counter,:) = {t.trial_feature,t.trial_type}; % get a code of what procedure is on what page
 end
 
+disp('procedures: ')
+disp(d.procedure_code)
+
 save(save_file); % save all data to a .mat file
 
 disp('done')

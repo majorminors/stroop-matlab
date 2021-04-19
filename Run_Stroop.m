@@ -21,7 +21,7 @@ p.scanning = 1;
 p.buttonbox = 1; % or keyboard
 
 % testing settings
-p.testing_enabled = 1; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
+p.testing_enabled = 0; % change to 0 if not testing (1 skips PTB synctests) - see '% test variables' below
 p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
 
@@ -52,7 +52,7 @@ set(0,'units','pixels'); pix = get(0,'screensize'); % get screen size in pixels
 set(0,'units','inches'); inch = get(0,'screensize'); % get screensize in inches
 % get the pixels per inch
 res = pix./inch; ppi = res(3:4); if ppi(1) ~= ppi(2); error('this res thing only works if height and width are the same ppi, and they are not somehow'); else ppi = ppi(1); end
-scaleFactor = 150/ppi; % find out what the scale factor is to get it to 150ppi (same as stroop js) 
+scaleFactor = ppi/150; % find out what the scale factor is to get it to 150ppi (same as stroop js) 
 p.size_scales = {... % these are the stimulus sizes
     [100*scaleFactor,NaN],... % this will scale to [rows (y pixels),cols (x pixels)] and NaN will be autoresized (i.e. maintain aspect ratio)
     [200*scaleFactor,NaN],...
@@ -182,8 +182,14 @@ disp(d.all_procedure_codes);
 fprintf('you chose procedure %1.0f\n',p.procedure_index);
 fprintf('procedure type: %s\n',d.procedure_type);
 fprintf('with attended feature: %s\n',d.attended_feature);
+if p.practice || strcmp(d.procedure_type,'training')
+    t.est_mins = (p.num_training_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
+else
+    t.est_mins = (p.num_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
+end
+fprintf('this will take about %1.0f mins (not accounting for feedback or loading)\n\n',t.est_mins);
 
-t.prompt = 'look right (y/n)? [y]\n';
+t.prompt = 'look right ([y]/n)?  ';
 t.ok = input(t.prompt,'s');
 if isempty(t.ok); t.ok = 'y'; end 
 if ~strcmp(t.ok,'y'); error('no good'); end
@@ -565,6 +571,7 @@ try
     
 catch err
     save(save_file);
+    KbQueueRelease(); % so we don't get warnings with listenchar etc
     ShowCursor;
     Screen('CloseAll');
     rethrow(err);
