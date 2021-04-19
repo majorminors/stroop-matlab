@@ -17,6 +17,7 @@ t = struct(); % another structure for untidy temp floating variables
 rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
+p.autoTrain = 1;
 
 % --- tech settings --- %
 p.testing_enabled = 0; % 1 will override tech settings and replace with testing defaults (see defaults section)
@@ -221,27 +222,67 @@ t.ok = input(t.prompt,'s');
 if isempty(t.ok); t.ok = 'y'; end 
 if ~strcmp(t.ok,'y'); error('no good'); end
 
+if p.autoTrain
+    warning('you are autotraining - we will automatically do training and practice trials');
+    t.prompt = 'alright ([y]/n)?  ';
+    t.ok = input(t.prompt,'s');
+    if isempty(t.ok); t.ok = 'y'; end 
+    if ~strcmp(t.ok,'y'); error('no good'); end
+end
+
+try
+
+% --- autotraining loop! --- %
+doProcedures = 1;
+continueOnFileExist = 0;
+while doProcedures % a while loop so we can automatically do training/prac runs
+
+if p.autoTrain
+
+    % --- pull all this again, because the idx will change now dynamically --- %
+    d.procedure = d.all_procedures(:,:,p.procedure_index);
+    t.procedure_code = d.all_procedure_codes(p.procedure_index,:);
+    d.attended_feature = t.procedure_code{1};
+    d.procedure_type = t.procedure_code{2};
+
+    if strcmp(d.procedure_type,'training') % if current procedure is training
+        doProcedures = doProcedures+1;
+        p.procedure_index = p.procedure_index+1;
+    elseif p.procedure_index > 1
+        continueOnFileExist = 1;
+        % if previous procedure was training (i.e. this one will be a practice
+        if strcmp(d.all_procedure_codes{p.procedure_index-1,2},'training')
+            doProcedures = doProcedures+1;
+            p.procedure_index = p.procedure_index+1;
+        end
+    end
+end
+
 % --- create a save file name --- %
 
 save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename,'_',d.attended_feature,'_',d.procedure_type];
 save_file = fullfile(savedir, save_file_name);
 if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
-    warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
-    while 1 % loop forever until y or n
-        ListenChar(2);
-        [secs,keyCode] = KbWait; % wait for response
-        key_name = KbName(keyCode); % find out name of key that was pressed
-        if strcmp(key_name, 'y')
-            fprintf('instructed to overwrite:\n %s.mat\n overwriting and continuing with %s\n', save_file, mfilename)
-            ListenChar(0);
-            clear secs keyCode key_name
-            break % break the loop and continue
-        elseif strcmp(key_name, 'n')
-            ListenChar(0);
-            clear secs keyCode key_name
-            error('instructed not to overwrite:\n %s.mat\n aborting %s\n', save_file, mfilename); % error out
-        end
-    end % end response loop
+    if ~continueOnFileExist % we'll assume the last one was a practice trial
+        warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
+        while 1 % loop forever until y or n
+            ListenChar(2);
+            [secs,keyCode] = KbWait; % wait for response
+            key_name = KbName(keyCode); % find out name of key that was pressed
+            if strcmp(key_name, 'y')
+                fprintf('instructed to overwrite:\n %s.mat\n overwriting and continuing with %s\n', save_file, mfilename)
+                ListenChar(0);
+                clear secs keyCode key_name
+                break % break the loop and continue
+            elseif strcmp(key_name, 'n')
+                ListenChar(0);
+                clear secs keyCode key_name
+                error('instructed not to overwrite:\n %s.mat\n aborting %s\n', save_file, mfilename); % error out
+            end
+        end % end response loop
+    end %end continueOnFileExist
+else
+    p.practice = 1;
 end % end check save file exist
 save(save_file); % save all data to a .mat file
 
@@ -268,7 +309,6 @@ d.results(:,2,:) = {d.procedure_type};
 % commence %
 %----------%
 
-try
     % open screen
     if p.fullscreen_enabled % zero out p.window_size if p.fullscreen_enabled = 1
         p.window_size=[];
@@ -582,12 +622,14 @@ try
     t.ts = Timestamp('End experiment', []);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     
+end % end autotrain while loop
+
     % tell them it's over
     DrawFormattedText(p.win,'this run is done!', 'center', 'center', p.text_colour); % tell them it's over!
     Screen('Flip', p.win);
     WaitSecs(1);
     Screen('Flip', p.win);
-    
+
     % close screen
     ShowCursor;
     KbQueueRelease(); %KbReleaseWait();
