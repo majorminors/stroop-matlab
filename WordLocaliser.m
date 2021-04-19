@@ -16,27 +16,33 @@ t = struct(); % another structure for untidy temp floating variables
 
 rootdir = pwd;
 
-p.testing_enabled = 1;
+p.testing_enabled = 0; % this has it's own defaults - see defaults section
 
 % script looks in stimdir/{cellstring} for png stimuli
 p.tests = {'words','pseudowords','falsefonts'};
 
 p.saveFolderName = 'manual'; % saves in datadir>saveFoldername>S##
 
-% set for values when testing not enabled (you need to change testing
-% defaults independently
+% set values for experiment (i.e. ~p.testing_enabled)
 p.fullscreen_enabled = 1;
-p.skip_synctests = 0;
 p.scanning = 1;
 p.buttonbox = 1;
+p.skip_synctests = 0;
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 p.numBlocks = 13;
-p.testTime = 16;
-p.stimTime = 0.5;
-p.itiTime = 0.1;
-p.numTrials = floor(p.testTime/(p.stimTime+p.itiTime));
+p.testTime = 16; % secs
+p.stimTime = 0.5; % secs
+p.itiTime = 0.1; % secs
+p.numTrials = floor(p.testTime/(p.stimTime+p.itiTime)); % how many stimtime+ititimes fit into the testtime?
 p.numRepeats = 3; % number of repeats to have in a trial (note: we use this to divide trials into segments, and put a repeat in each segment)
+p.est_mins = (p.numBlocks*numel(p.tests)*p.testTime)/60;
+fprintf('this is going to take about %1.0f mins (not including loading time)\n',p.est_mins);
+
+t.prompt = 'look right ([y]/n)?  ';
+t.ok = input(t.prompt,'s');
+if isempty(t.ok); t.ok = 'y'; end 
+if ~strcmp(t.ok,'y'); error('no good'); end
 
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'};
@@ -69,6 +75,7 @@ if p.testing_enabled == 1
     p.fullscreen_enabled = 0;
     p.scanning = 0;
     p.buttonbox = 0;
+    p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
     Screen('Preference', 'ConserveVRAM', 64); % for working on a vm, we need this enabled
 elseif p.testing_enabled == 0
     if p.skip_synctests
@@ -362,6 +369,7 @@ try
     
 catch err
     save(save_file);
+    KbQueueRelease(); % so we don't get warnings with listenchar etc
     ShowCursor;
     Screen('CloseAll');
     rethrow(err);
