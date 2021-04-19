@@ -99,17 +99,17 @@ end
 
 % --- screen stuff --- %
 
-% Get the screen numbers
-p.screens = Screen('Screens');
+% get the screen numbers
+p.screens = Screen('Screens'); % funny difference pc to other oses, but doesn't matter in cbu fMRI
 
-% Draw to the external screen if avaliable
+% draw to the external screen if available
 p.screenNumber = max(p.screens);
 
-% Define p.black and p.white
+% define p.black and p.white
 p.white = WhiteIndex(p.screenNumber);
 p.black = BlackIndex(p.screenNumber);
 p.grey = p.white / 2;
-inc = p.white - p.grey;
+inc = p.white - p.grey; % i'm pretty sure I don't use this
 
 % --- set up participant id and create a save file --- %
 
