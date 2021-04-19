@@ -20,7 +20,7 @@ function do_instructions(p,instructions)
     DrawFormattedText(p.win, instruction_text, 'center', 'center', p.text_colour)
     Screen('Flip', p.win);
     WaitSecs(1); % so you hopefully don't have keys down!
-    if p.scanning
+    if p.buttonbox
         scansync([2:5],Inf); % wait for specified scansync triggers to return
     else
         KbWait();
