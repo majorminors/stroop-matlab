@@ -1,6 +1,6 @@
-% pix = angle2pix(display,ang)
+% angle = pix2angle(display,pix)
 %
-% calculates pixel size from visual angles, assuming isotropic (square) pixels
+% converts monitor pixels into degrees of visual angle, assuming isotropic (square) pixels
 %
 % requires:
 % display.screen_distance           distance from screen in cm
@@ -10,9 +10,9 @@
 %% last edit D. Minors 18 November 2019
 %% start function
 
-function pix = angle2pix(display,ang)
-pixSize = display.screen_width/display.resolution(1);   % cm/pix
-sz = 2*display.screen_distance*tan(pi*ang/(2*180));  %cm
-pix = round(sz/pixSize);   % pix 
+function ang = pix2angle(display,pix)
+pixSize = display.screen_width/display.resolution(1);   %cm/pix
+sz = pix*pixSize;  %cm
+ang = 2*180*atan(sz/(2*display(1).screen_distance))/pi;
 return
 end
