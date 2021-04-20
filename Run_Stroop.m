@@ -20,19 +20,19 @@ p.manual_stroop = 1;
 p.autoTrain = 1;
 
 % --- tech settings --- %
-p.testing_enabled = 0; % 1 will override tech settings and replace with testing defaults (see defaults section)
-p.scanning = 0;
-p.buttonbox = 0; % or keyboard
+p.testing_enabled = 1; % 1 will override some tech settings and replace with testing defaults (see defaults section)
+p.scanning = 1;
+p.buttonbox = 1; % or keyboard
 p.fullscreen_enabled = 1;
 p.skip_synctests = 1; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
-p.screen_distance = 156.5; % cbu mri = 1565mm 
-p.screen_width = 69.84; % cbu mri = 698.4mm
+p.screen_distance = 50;%156.5; % cbu mri = 1565mm
+p.screen_width = 30;%69.84; % cbu mri = 698.4mm
 p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % block settings
-p.num_blocks = 10; % overridden to training blocks for training and practice runs
+p.num_blocks = 2;%10; % overridden to training blocks for training and practice runs
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile) - hasty workaround for abstracting this script
@@ -49,8 +49,10 @@ p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-tmp.screen_distance = 50; tmp.screen_width = 30; tmp.resolution = 150; % approximation of jsPsych screen (after resizing to 150dpi)?
-p.stim_heights = [pix2angle(tmp,100),pix2angle(tmp,200),pix2angle(tmp,300)]; % in visual angle
+tmp.screen_distance = 50; tmp.screen_width = 33; tmp.resolution = [1366,768]; % approximation of jsPsych screen (after resizing to 150dpi)?
+p.stim_heights = [pix2angleJSCONV(tmp,100),pix2angleJSCONV(tmp,200),pix2angleJSCONV(tmp,300)]; % in visual angle
+% not quite sure about this, but can do current ppi*stimHeightPixels/150 to
+% convert
 p.fixation_size = 40; % px
 p.fixation_thickness = 4; % px
 p.colours = {'red','blue','green'}; % used to create response coding, will assume stimulus file is named with correct colours
@@ -121,17 +123,8 @@ p.screens = Screen('Screens'); % funny difference pc to other oses, but doesn't 
 % draw to the external screen if available
 p.screen_num = max(p.screens);
 
-% % define display info
-% if ~p.ppi % try to estimate ppi
-%     set(0,'units','pixels'); pix = get(0,'screensize'); % get screen size in pixels
-%     set(0,'units','inches'); inch = get(0,'screensize'); % get screensize in inches
-%     % get the pixels per inch
-%     res = pix./inch; p.ppi = res(3:4); if p.ppi(1) ~= p.ppi(2); error('this res thing only works if height and width are the same p.ppi, and they are not somehow'); else p.ppi = p.ppi(1); end
-% end; clear pix inch res;
-% scaleFactor = p.ppi/150; % find out what the scale factor is to get it to 150ppi (same as stroop js) 
-
 p.size_scales = {... % scales rows (y pixels), auto cols (x pixels) (i.e. maintain aspect ratio)
-    [angle2pix(p,p.stim_heights(1)),NaN],... 
+    [angle2pix(p,p.stim_heights(1)),NaN],...
     [angle2pix(p,p.stim_heights(2)),NaN],...
     [angle2pix(p,p.stim_heights(3)),NaN]}; clear scaleFactor;
 
@@ -219,96 +212,23 @@ fprintf('this will take about %1.0f mins (not accounting for feedback or loading
 
 t.prompt = 'look right ([y]/n)?  ';
 t.ok = input(t.prompt,'s');
-if isempty(t.ok); t.ok = 'y'; end 
+if isempty(t.ok); t.ok = 'y'; end
 if ~strcmp(t.ok,'y'); error('no good'); end
 
 if p.autoTrain
     warning('you are autotraining - we will automatically do training and practice trials');
+    warning('there is a chance you will overwrite save files, so check your business!');
     t.prompt = 'alright ([y]/n)?  ';
     t.ok = input(t.prompt,'s');
-    if isempty(t.ok); t.ok = 'y'; end 
+    if isempty(t.ok); t.ok = 'y'; end
     if ~strcmp(t.ok,'y'); error('no good'); end
 end
 
 try
-
-% --- autotraining loop! --- %
-doProcedures = 1;
-continueOnFileExist = 0;
-while doProcedures % a while loop so we can automatically do training/prac runs
-
-if p.autoTrain
-
-    % --- pull all this again, because the idx will change now dynamically --- %
-    d.procedure = d.all_procedures(:,:,p.procedure_index);
-    t.procedure_code = d.all_procedure_codes(p.procedure_index,:);
-    d.attended_feature = t.procedure_code{1};
-    d.procedure_type = t.procedure_code{2};
-
-    if strcmp(d.procedure_type,'training') % if current procedure is training
-        doProcedures = doProcedures+1;
-        p.procedure_index = p.procedure_index+1;
-    elseif p.procedure_index > 1
-        continueOnFileExist = 1;
-        % if previous procedure was training (i.e. this one will be a practice
-        if strcmp(d.all_procedure_codes{p.procedure_index-1,2},'training')
-            doProcedures = doProcedures+1;
-            p.procedure_index = p.procedure_index+1;
-        end
-    end
-end
-
-% --- create a save file name --- %
-
-save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename,'_',d.attended_feature,'_',d.procedure_type];
-save_file = fullfile(savedir, save_file_name);
-if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
-    if ~continueOnFileExist % we'll assume the last one was a practice trial
-        warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
-        while 1 % loop forever until y or n
-            ListenChar(2);
-            [secs,keyCode] = KbWait; % wait for response
-            key_name = KbName(keyCode); % find out name of key that was pressed
-            if strcmp(key_name, 'y')
-                fprintf('instructed to overwrite:\n %s.mat\n overwriting and continuing with %s\n', save_file, mfilename)
-                ListenChar(0);
-                clear secs keyCode key_name
-                break % break the loop and continue
-            elseif strcmp(key_name, 'n')
-                ListenChar(0);
-                clear secs keyCode key_name
-                error('instructed not to overwrite:\n %s.mat\n aborting %s\n', save_file, mfilename); % error out
-            end
-        end % end response loop
-    end %end continueOnFileExist
-else
-    p.practice = 1;
-end % end check save file exist
-save(save_file); % save all data to a .mat file
-
-
-%% exp start
-fprintf('running experiment %s\n', mfilename);
-
-d.initTime = [];
-d.timestamps = Timestamp('Initialise timestamp structure', []);
-
-%----------------------------%
-% prepopulate results matrix %
-%----------------------------%
-
-d.results = cell(size(d.procedure,1),5,p.num_blocks); % initialise a results matrix the length of the trials
-% extra dimension for blocks deleted for practice and training
-d.results(:,1,:) = {d.attended_feature};
-d.results(:,2,:) = {d.procedure_type};
-% 3) rt
-% 4) correct (meaningful only for manual, otherwise -2)
-% 5) stimulus index (to get from d.stimulus_matrix the stimulus information)
-
-%----------%
-% commence %
-%----------%
-
+    %----------%
+    % commence %
+    %----------%
+    
     % open screen
     if p.fullscreen_enabled % zero out p.window_size if p.fullscreen_enabled = 1
         p.window_size=[];
@@ -320,316 +240,396 @@ d.results(:,2,:) = {d.procedure_type};
     HideCursor;
     WaitSecs(0.5); % warm up
     
-    % --- do some edits based on practice/training --- %
     
-    if strcmp(d.procedure_type,'training') % if it's a training trial
-        disp('training procedure')
-        t.training = 1;
-            if p.scanning == 1; warning('you had p.scanning on, but this is a training block so im going to turn it off');p.scanning = 0; end
-        t.training_type = d.attended_feature; % we're going to use a more legible name for this
-        p.num_blocks = p.num_training_blocks; % override num blocks
-        d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
-        p.practice = 0; % override practice if accidentally on
-    else
-        t.training = 0;
-        if p.practice
-            p.num_blocks = p.num_training_blocks; % override num blocks
-            if p.scanning == 1; warning('you had p.scanning on, but this is a practice block so im going to turn it off');p.scanning = 0; end
-            d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
+    % --- autotraining loop! --- %
+    t.scanning = p.scanning; % we'll use this so we can change it in the loop
+    doProcedures = 1;
+    continueOnFileExist = 0;
+    forcePractice = 0;
+    while doProcedures % a while loop so we can automatically do training/prac runs
+        
+        if p.autoTrain
+            
+            % --- pull all this again, because the idx will change now dynamically --- %
+            d.procedure = d.all_procedures(:,:,p.procedure_index);
+            t.procedure_code = d.all_procedure_codes(p.procedure_index,:);
+            d.attended_feature = t.procedure_code{1};
+            d.procedure_type = t.procedure_code{2};
+            
+            if strcmp(d.procedure_type,'training') % if current procedure is training
+                doProcedures = doProcedures+1;
+                p.procedure_index = p.procedure_index+1;
+            elseif p.procedure_index > 1
+                continueOnFileExist = 1;
+                % if previous procedure was training (i.e. this one will be a practice)
+                if strcmp(d.all_procedure_codes{p.procedure_index-1,2},'training')
+                    doProcedures = doProcedures+1;
+                    forcePractice = 1; % will only matter if there isn't a save file
+                end
+            end
         end
-    end
-    
-    % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
-    DrawFormattedText(p.win, 'Experimenter: start run when ready', 'center', 'center', p.text_colour)
-    Screen('Flip', p.win);
-    t.ts = Timestamp('Instruc press space onset', []);
-    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-    WaitSecs(1); % so you hopefully don't have keys down!
-    KbWait();
-    
-    
-    % --- wait until TTL (this is after 4 dummy scans) ---
-    if ~p.scanning %msg experimenter
-        WaitSecs(0.1);
-        DrawFormattedText(p.win, 'Dummy mode: press any key to start', 'center', 'center', p.text_colour)
+        
+        % --- create a save file name --- %
+        
+        save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename,'_',d.attended_feature,'_',d.procedure_type];
+        save_file = fullfile(savedir, save_file_name);
+        if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
+            p.practice = 0; % you might have already practiced
+            doProcedures = 1;
+            if ~continueOnFileExist % skip if autotraining
+                warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
+                while 1 % loop forever until y or n
+                    ListenChar(2);
+                    [secs,keyCode] = KbWait; % wait for response
+                    key_name = KbName(keyCode); % find out name of key that was pressed
+                    if strcmp(key_name, 'y')
+                        fprintf('instructed to overwrite:\n %s.mat\n overwriting and continuing with %s\n', save_file, mfilename)
+                        ListenChar(0);
+                        clear secs keyCode key_name
+                        break % break the loop and continue
+                    elseif strcmp(key_name, 'n')
+                        ListenChar(0);
+                        clear secs keyCode key_name
+                        error('instructed not to overwrite:\n %s.mat\n aborting %s\n', save_file, mfilename); % error out
+                    end
+                end % end response loop
+            end %end continueOnFileExist
+        elseif forcePractice
+            p.practice = 1;
+        end % end check save file exist
+        save(save_file); % save all data to a .mat file
+        
+        
+        %% exp start
+        fprintf('running experiment %s\n', mfilename);
+        
+        d.initTime = [];
+        d.timestamps = Timestamp('Initialise timestamp structure', []);
+        
+        %----------------------------%
+        % prepopulate results matrix %
+        %----------------------------%
+        
+        d.results = cell(size(d.procedure,1),5,p.num_blocks); % initialise a results matrix the length of the trials
+        % extra dimension for blocks deleted for practice and training
+        d.results(:,1,:) = {d.attended_feature};
+        d.results(:,2,:) = {d.procedure_type};
+        % 3) rt
+        % 4) correct (meaningful only for manual, otherwise -2)
+        % 5) stimulus index (to get from d.stimulus_matrix the stimulus information)
+        
+        
+        % --- do some edits based on practice/training --- %
+        
+        if strcmp(d.procedure_type,'training') % if it's a training trial
+            disp('training procedure')
+            t.training = 1;
+            if p.scanning == 1; warning('you had p.scanning on, but this is a training block so im going to turn it off');t.scanning = 0; end
+            t.training_type = d.attended_feature; % we're going to use a more legible name for this
+            p.num_blocks = p.num_training_blocks; % override num blocks
+            d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
+        else
+            t.training = 0;
+            if p.practice
+                p.num_blocks = p.num_training_blocks; % override num blocks
+                if p.scanning == 1; warning('you had p.scanning on, but this is a practice block so im going to turn it off');t.scanning = 0; end
+                d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
+            else t.scanning = p.scanning;
+            end
+        end
+        
+        % -- AW 23/8/19, wait for experimenter (wil PA blib is running) --
+        DrawFormattedText(p.win, 'Experimenter: start run when ready', 'center', 'center', p.text_colour);
         Screen('Flip', p.win);
         t.ts = Timestamp('Instruc press space onset', []);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         WaitSecs(1); % so you hopefully don't have keys down!
         KbWait();
-        d.initTime=GetSecs();
         
-    else
-        DrawFormattedText(p.win, 'Waiting for scanner', 'center', 'center', p.text_colour)
-        Screen('Flip', p.win);
-        t.ts = Timestamp('Instruc wait TTL onset', []);
-        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
-        % wait for first trigger scansync
-        [pulse_time,~,daqstate] = scansync(1,Inf);
-        d.initTime=GetSecs();
-        
-        t.ts = Timestamp('TR', []);
-        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-        
-    end
-    
-    % --- do some instructions --- %
-    
-    t.ts = Timestamp(['Instructions ' d.procedure_type ' ' d.attended_feature], d.initTime);
-    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-    
-    if p.procedure_index == 1
-%         do_instructions(p,'first')
-    end
-    if strcmp(d.attended_feature,'colour')
-        do_instructions(p,'colour')
-    elseif strcmp(d.attended_feature,'size')
-        do_instructions(p,'height')
-    end
-    if strcmp(d.procedure_type,'training')
-        do_instructions(p,'training')
-    else
-        if p.practice
-            do_instructions(p,'practice')
-        else
-            do_instructions(p,'test')
-        end
-    end
-    
-    % --- start procedure --- %
-    
-    t.ts = Timestamp(['Start of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
-    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-    
-    %% block loop
-    for block = 1:p.num_blocks
-        fprintf('block %u of %u\n',block,p.num_blocks ); % report trial number to command window
-        t.ts = Timestamp(['Start of Block  ' d.procedure_type ' ' d.attended_feature], d.initTime, block );
-        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-        % shuffle procedure
-        d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here as NewShuffle because one computer I was testing on had some old version?))
-        %% trial loop
-        t.lastresp = NaN(1,4); % initialise this
-        for trial = 1:size(d.procedure,1)
-            if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
-            fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
-            t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
-            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            t.this_trial = d.procedure(trial,:); % get the trial information
-            t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
-            t.this_size = t.this_trial(2); % get the size of the trial
-            if t.training
-                if strcmp(t.training_type,'colour')
-                    t.this_size = 2; % select medium size
-                    t.stimulus = cell2mat(d.training_stimuli(find(strcmp(p.colours(t.this_stim_idx),d.training_stimuli(:,1))),2));
-                    t.corr_colour = p.colours(t.this_stim_idx);
-                elseif strcmp(t.training_type,'size')
-                    t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(:,1),'line')),2));
-                end
-            else
-                t.stimulus = cell2mat(d.stimulus_matrix(t.this_stim_idx,2));
-                t.corr_colour = d.stimulus_matrix(t.this_stim_idx,5);
-            end
-            
-            % resize based on the size required
-            t.stimulus = imresize(t.stimulus,p.size_scales{t.this_size});
-            
-            %             if you want to test
-            % t.stimulus = cell2mat(d.stimulus_matrix(4,2));
-            
-            % set up a queue to collect response info
-            if p.manual_stroop && ~p.buttonbox
-                t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
-            else % if vocal stroop or p.buttonbox
-                t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
-            end
-            t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
-            t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
-            KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
-            KbQueueStart(); % starts delivering keypress info to the queue
-            
-            % iti
-            % get coordinates for centering stimuli from fixation parameters
-            p.xCoords = [-p.fixation_size p.fixation_size 0 0];
-            p.yCoords = [0 0 -p.fixation_size p.fixation_size];
-            p.allCoords = [p.xCoords; p.yCoords];
-            
-            Screen('DrawLines', p.win, p.allCoords, p.fixation_thickness, p.text_colour, [p.xCenter p.yCenter], 2);
+        % --- wait until TTL (this is after 4 dummy scans) ---
+        if ~t.scanning %msg experimenter
+            WaitSecs(0.1);
+            DrawFormattedText(p.win, 'Dummy mode: press any key to start', 'center', 'center', p.text_colour);
             Screen('Flip', p.win);
-            WaitSecs(p.iti_time);
-            
-            % make the texture and draw it
-            t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
-            Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
-            
-            % then display cue
-            t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
-            t.ts = Timestamp(['Cue Onset ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+            t.ts = Timestamp('Instruc press space onset', []);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-            if p.vocal_stroop
-                t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial)], 'savemode', 2);
-            elseif p.manual_stroop
-                if ~p.buttonbox
-                    WaitSecs(p.trial_duration); % wait for trial
+            WaitSecs(1); % so you hopefully don't have keys down!
+            KbWait();
+            d.initTime=GetSecs();
+            
+        else
+            DrawFormattedText(p.win, 'Waiting for scanner', 'center', 'center', p.text_colour);
+            Screen('Flip', p.win);
+            t.ts = Timestamp('Instruc wait TTL onset', []);
+            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+            
+            % wait for first trigger scansync
+            [pulse_time,~,daqstate] = scansync(1,Inf);
+            d.initTime=GetSecs();
+            
+            t.ts = Timestamp('TR', []);
+            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+            
+        end
+        
+        % --- do some instructions --- %
+        
+        t.ts = Timestamp(['Instructions ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+        if p.procedure_index == 1
+            %         do_instructions(p,'first')
+        end
+        if strcmp(d.attended_feature,'colour')
+            do_instructions(p,'colour')
+        elseif strcmp(d.attended_feature,'size')
+            do_instructions(p,'height')
+        end
+        if strcmp(d.procedure_type,'training')
+            do_instructions(p,'training')
+        else
+            if p.practice
+                do_instructions(p,'practice')
+            else
+                do_instructions(p,'test')
+            end
+        end
+        
+        % --- start procedure --- %
+        
+        t.ts = Timestamp(['Start of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+        %% block loop
+        for block = 1:p.num_blocks
+            fprintf('block %u of %u\n',block,p.num_blocks ); % report trial number to command window
+            t.ts = Timestamp(['Start of Block  ' d.procedure_type ' ' d.attended_feature], d.initTime, block );
+            d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+            % shuffle procedure
+            d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here as NewShuffle because one computer I was testing on had some old version?))
+            %% trial loop
+            t.lastresp = NaN(1,4); % initialise this
+            for trial = 1:size(d.procedure,1)
+                if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
+                fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
+                t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+                t.this_trial = d.procedure(trial,:); % get the trial information
+                t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
+                t.this_size = t.this_trial(2); % get the size of the trial
+                if t.training
+                    if strcmp(t.training_type,'colour')
+                        t.this_size = 2; % select medium size
+                        t.stimulus = cell2mat(d.training_stimuli(find(strcmp(p.colours(t.this_stim_idx),d.training_stimuli(:,1))),2));
+                        t.corr_colour = p.colours(t.this_stim_idx);
+                    elseif strcmp(t.training_type,'size')
+                        t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(:,1),'line')),2));
+                    end
                 else
-                    t.timenow = GetSecs;
-                    [~,~,t.out] = scansync([],t.timenow+p.trial_duration);
-                    t.thisresp = t.out.lastresp(2:5);
+                    t.stimulus = cell2mat(d.stimulus_matrix(t.this_stim_idx,2));
+                    t.corr_colour = d.stimulus_matrix(t.this_stim_idx,5);
                 end
-            end
-            %% deal with response
-            
-            % deal with keypress (required for both manual keyboard and quitkey in vocal or p.buttonbox)
-            [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
-            if t.pressed
-                t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
-                if size(t.resp_key_name) > 1; t.resp_key_name = t.resp_key_name{1}; end % just get the first entry (if two are pressed together)
-            else; t.resp_key_name = NaN; end
-            t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
-            
-            % quit if quitkey
-            if strcmp(t.resp_key_name,p.quitkey)
-                save(save_file); % so we don't lose all data
-                fclose('all');
-                error('%s quit by user (p.quitkey pressed)\n', mfilename);
-            end
-            
-            if p.manual_stroop % code response
-                if p.buttonbox
-                    % Get the response button and rt
-                    if any(t.thisresp)
-                        if isequaln(t.lastresp,t.thisresp) % is equal, but with nans
+                
+                % resize based on the size required
+                t.stimulus = imresize(t.stimulus,p.size_scales{t.this_size});
+                
+                %             if you want to test
+                % t.stimulus = cell2mat(d.stimulus_matrix(4,2));
+                
+                % set up a queue to collect response info
+                if p.manual_stroop && ~p.buttonbox
+                    t.queuekeys = [KbName(p.resp_keys{1}), KbName(p.resp_keys{2}), KbName(p.resp_keys{3}), KbName(p.quitkey)]; % define the keys the queue cares about
+                else % if vocal stroop or p.buttonbox
+                    t.queuekeys = [KbName(p.quitkey)]; % define the keys the queue cares about
+                end
+                t.queuekeylist = zeros(1,256); % create a list of all possible keys (all 'turned off' i.e. zeroes)
+                t.queuekeylist(t.queuekeys) = 1; % 'turn on' the keys we care about in the list (make them ones)
+                KbQueueCreate([], t.queuekeylist); % initialises queue to collect response information from the list we made (not listening for response yet)
+                KbQueueStart(); % starts delivering keypress info to the queue
+                
+                % iti
+                % get coordinates for centering stimuli from fixation parameters
+                p.xCoords = [-p.fixation_size p.fixation_size 0 0];
+                p.yCoords = [0 0 -p.fixation_size p.fixation_size];
+                p.allCoords = [p.xCoords; p.yCoords];
+                
+                Screen('DrawLines', p.win, p.allCoords, p.fixation_thickness, p.text_colour, [p.xCenter p.yCenter], 2);
+                Screen('Flip', p.win);
+                WaitSecs(p.iti_time);
+                
+                % make the texture and draw it
+                t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
+                Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
+                
+                % then display cue
+                t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
+                t.ts = Timestamp(['Cue Onset ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+                if p.vocal_stroop
+                    t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial)], 'savemode', 2);
+                elseif p.manual_stroop
+                    if ~p.buttonbox
+                        WaitSecs(p.trial_duration); % wait for trial
+                    else
+                        t.timenow = GetSecs;
+                        [~,~,t.out] = scansync([],t.timenow+p.trial_duration);
+                        t.thisresp = t.out.lastresp(2:5);
+                    end
+                end
+                %% deal with response
+                
+                % deal with keypress (required for both manual keyboard and quitkey in vocal or p.buttonbox)
+                [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
+                if t.pressed
+                    t.resp_key_name = KbName(t.firstPress); % get the name of the key used to respond - might need squiggly brackets?
+                    if size(t.resp_key_name) > 1; t.resp_key_name = t.resp_key_name{1}; end % just get the first entry (if two are pressed together)
+                else; t.resp_key_name = NaN; end
+                t.resp_key_time = sum(t.firstPress); % get the timing info of the key used to respond
+                
+                % quit if quitkey
+                if strcmp(t.resp_key_name,p.quitkey)
+                    save(save_file); % so we don't lose all data
+                    fclose('all');
+                    error('%s quit by user (p.quitkey pressed)\n', mfilename);
+                end
+                
+                if p.manual_stroop % code response
+                    if p.buttonbox
+                        % Get the response button and rt
+                        if any(t.thisresp)
+                            if isequaln(t.lastresp,t.thisresp) % is equal, but with nans
+                                t.pressed = 0;
+                                t.resp_code = 0; % code invalid response
+                                t.feedback = 'no valid response';
+                                t.rt = NaN;
+                            else
+                                tmp1=t.thisresp;
+                                tmp2=t.lastresp;
+                                tmp1(isnan(t.thisresp)) = 0;
+                                tmp2(isnan(t.lastresp)) = 0;
+                                t.pressed = find(tmp1 ~= tmp2);
+                                for iresult = 1:length(t.pressed)
+                                    t.pressed(2,iresult) = tmp1(t.pressed(1,iresult))-t.timenow;
+                                end
+                                t.first_press = t.pressed(1,find(t.pressed(2,:) == min(t.pressed(2,:))));
+                                t.resp_code = t.first_press;
+                                t.rt = min(t.pressed(2,:)); clear tmp1 tmp2;
+                            end
+                        else
                             t.pressed = 0;
                             t.resp_code = 0; % code invalid response
                             t.feedback = 'no valid response';
                             t.rt = NaN;
+                        end
+                        t.lastresp = t.thisresp;
+                    else % if keyboard
+                        t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
+                        % save the response key (as a code)
+                        if t.resp_key_name == p.resp_keys{1}
+                            t.resp_code = 1; % code response 1 pressed
+                        elseif t.resp_key_name == p.resp_keys{2}
+                            t.resp_code = 2; % code response 2 pressed
+                        elseif t.resp_key_name == p.resp_keys{3}
+                            t.resp_code = 3; % code response 2 pressed
                         else
-                            tmp1=t.thisresp;
-                            tmp2=t.lastresp;
-                            tmp1(isnan(t.thisresp)) = 0;
-                            tmp2(isnan(t.lastresp)) = 0;
-                            t.pressed = find(tmp1 ~= tmp2);
-                            for iresult = 1:length(t.pressed)
-                                t.pressed(2,iresult) = tmp1(t.pressed(1,iresult))-t.timenow;
-                            end
-                            t.first_press = t.pressed(1,find(t.pressed(2,:) == min(t.pressed(2,:))));
-                            t.resp_code = t.first_press;
-                            t.rt = min(t.pressed(2,:)); clear tmp1 tmp2;
-                        end                
-                    else
-                        t.pressed = 0;
-                        t.resp_code = 0; % code invalid response
-                        t.feedback = 'no valid response';
-                        t.rt = NaN;
+                            t.resp_code = 0; % code invalid response
+                            t.feedback = 'no valid response';
+                        end
                     end
-                    t.lastresp = t.thisresp;
-                else % if keyboard
-                    t.rt = t.resp_key_time - t.cue_onset; % rt is the timing of key info - time of dots onset (if you get minus values something's wrong with how we deal with nil/early responses)
-                    % save the response key (as a code)
-                    if t.resp_key_name == p.resp_keys{1}
-                        t.resp_code = 1; % code response 1 pressed
-                    elseif t.resp_key_name == p.resp_keys{2}
-                        t.resp_code = 2; % code response 2 pressed
-                    elseif t.resp_key_name == p.resp_keys{3}
-                        t.resp_code = 3; % code response 2 pressed
-                    else
-                        t.resp_code = 0; % code invalid response
-                        t.feedback = 'no valid response';
-                    end
-                end
-                
-                % score response
-                if strcmp(d.attended_feature, 'size')
-                    if t.this_size == t.resp_code
-                        t.correct = 1;
-                        t.feedback = 'correct';
-                    else
-                        t.correct = 0;
-                        t.feedback = 'incorrect';
-                    end
-                elseif strcmp(d.attended_feature, 'colour')
-                    if t.resp_code>0;
-                        if strcmp(p.colours{t.resp_code},t.corr_colour)
+                    
+                    % score response
+                    if strcmp(d.attended_feature, 'size')
+                        if t.this_size == t.resp_code
                             t.correct = 1;
                             t.feedback = 'correct';
                         else
                             t.correct = 0;
                             t.feedback = 'incorrect';
                         end
-                    else
-                        t.correct = 0;
-                        t.feedback = 'invalid';
+                    elseif strcmp(d.attended_feature, 'colour')
+                        if t.resp_code>0;
+                            if strcmp(p.colours{t.resp_code},t.corr_colour)
+                                t.correct = 1;
+                                t.feedback = 'correct';
+                            else
+                                t.correct = 0;
+                                t.feedback = 'incorrect';
+                            end
+                        else
+                            t.correct = 0;
+                            t.feedback = 'invalid';
+                        end
                     end
+                    t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+                    
+                    if t.training || p.practice
+                        % display trialwise feedback
+                        DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
+                        Screen('Flip', p.win);
+                        WaitSecs(p.trial_feedback_time);
+                        Screen('Flip', p.win);
+                    end
+                    
+                end % end manual stroop coding
+                
+                % collate the results
+                d.results(trial,3,block) = {t.rt};
+                if p.manual_stroop
+                    d.results(trial,4,block) = {t.correct};
+                else
+                    d.results(trial,4,block) = {-2};
                 end
-                t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                d.results(trial,5,block) = {t.this_stim_idx};
+                d.results(trial,6,block) = {t.this_size};
+                
+                % end trial
+                t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 
-                if t.training || p.practice
-                    % display trialwise feedback
-                    DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
-                    Screen('Flip', p.win);
-                    WaitSecs(p.trial_feedback_time);
-                    Screen('Flip', p.win);
-                end
-                
-            end % end manual stroop coding
+                %% post trial cleanup
+                KbQueueRelease();
+            end; clear trial;
             
-            % collate the results
-            d.results(trial,3,block) = {t.rt};
-            if p.manual_stroop
-                d.results(trial,4,block) = {t.correct};
-            else
-                d.results(trial,4,block) = {-2};
+            % do blockwise feedback
+            if ~t.training && ~p.practice
+                t.percent_correct = round((sum(cell2mat(d.results(:,4,block)))/length(cell2mat(d.results(:,4,block))))*100);
+                t.pc_string = num2str(t.percent_correct);
+                t.block_feedback = ['You got ' t.pc_string '% correct!'];
+                % display trialwise feedback
+                DrawFormattedText(p.win, t.block_feedback, 'center', 'center', p.text_colour); % display feedback
+                Screen('Flip', p.win);
+                WaitSecs(p.block_feedback_time);
+                Screen('Flip', p.win);
             end
-            d.results(trial,5,block) = {t.this_stim_idx};
-            d.results(trial,6,block) = {t.this_size};
             
-            % end trial
-            t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+            save(save_file); % so we don't lose all data in a crash
+            t.ts = Timestamp(['End of Block ' d.procedure_type ' ' d.attended_feature], d.initTime);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             
-            %% post trial cleanup
-            KbQueueRelease();
-        end; clear trial;
-        
-        % do blockwise feedback
-        if ~t.training && ~p.practice
-            t.percent_correct = round((sum(cell2mat(d.results(:,4,block)))/length(cell2mat(d.results(:,4,block))))*100);
-            t.pc_string = num2str(t.percent_correct);
-            t.block_feedback = ['You got ' t.pc_string '% correct!'];
-            % display trialwise feedback
-            DrawFormattedText(p.win, t.block_feedback, 'center', 'center', p.text_colour); % display feedback
-            Screen('Flip', p.win);
-            WaitSecs(p.block_feedback_time);
-            Screen('Flip', p.win);
-        end
-        
+        end; clear block;
         save(save_file); % so we don't lose all data in a crash
-        t.ts = Timestamp(['End of Block ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        t.ts = Timestamp(['End of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
-    end; clear block;
-    save(save_file); % so we don't lose all data in a crash
-    t.ts = Timestamp(['End of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
-    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+        %% wrap up
+        
+        save(save_file); % save the data
+        
+        t.ts = Timestamp('End experiment', []);
+        d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+        
+        doProcedures = doProcedures-1; %deiterate
+    end % end autotrain while loop
     
-    
-    %% wrap up
-    
-    save(save_file); % save the data
-    
-    t.ts = Timestamp('End experiment', []);
-    d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-    
-end % end autotrain while loop
-
     % tell them it's over
     DrawFormattedText(p.win,'this run is done!', 'center', 'center', p.text_colour); % tell them it's over!
     Screen('Flip', p.win);
     WaitSecs(1);
     Screen('Flip', p.win);
-
+    
     % close screen
     ShowCursor;
     KbQueueRelease(); %KbReleaseWait();
