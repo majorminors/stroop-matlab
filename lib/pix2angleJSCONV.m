@@ -17,7 +17,7 @@ function ang = pix2angleJSCONV(display,pix)
 %     set(0,'units','pixels'); 
 pixwidth = display.resolution(1); % get screen size in pixels
 %     set(0,'units','inches'); 
-units = display.screen_width; % get screensize
+units = display.screen_width/2.54; % get screensize and convert to inches
 %     % get the pixels per inch(unit)
 ppi = pixwidth/units;
 scaleFactor = ppi/150; % find out what the scale factor is to get it to 150ppi (same as stroop js)
