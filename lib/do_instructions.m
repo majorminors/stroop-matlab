@@ -11,7 +11,7 @@ function do_instructions(p,instructions)
         case 'training'
             instruction_text = 'This is a practice on an easy stimulus.\nYou will get feedback each trial.\nPress anything to continue.';
         case 'practice'
-            instruction_text = 'This is a practice with a more complex stimulus.\nYou will get feedback each trial.\nPress anything to continue.';
+            instruction_text = 'This is a practice with a complex stimulus.\nYou will get feedback each trial.\nPress anything to continue.';
         case 'test'
             instruction_text = 'Now we begin the test.\nYou will now only get a feedback score\nafter a certain number of trials.\nPress anything to continue.';
     end
