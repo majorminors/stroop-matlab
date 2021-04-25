@@ -43,7 +43,7 @@ p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-tmpDist = 50; tmpPPU = 150/2.54; % old jsPsych distance and ppi->ppcm measurement
+tmpDist = 60; tmpPPU = 150/2.54; % old jsPsych distance and ppi->ppcm measurement
 p.stim_heights = [... % in visual angle
     resizer(p,100,tmpDist,tmpPPU),...
     resizer(p,200,tmpDist,tmpPPU),...
