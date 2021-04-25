@@ -17,20 +17,17 @@ t = struct(); % another structure for untidy temp floating variables
 rootdir = pwd; % root directory - used to inform directory mappings
 p.vocal_stroop = 0;
 p.manual_stroop = 1;
-p.autoTrain = 1; % will automatically continue after training and force a practice on the procedure following training
-p.testing_enabled = 0; % 1 will override some tech settings and replace with testing defaults (see defaults section)
+p.autoTrain = 1;
 
 % --- tech settings --- %
+p.testing_enabled = 1; % 1 will override some tech settings and replace with testing defaults (see defaults section)
 p.scanning = 1;
 p.buttonbox = 1; % or keyboard
 p.fullscreen_enabled = 1;
 p.skip_synctests = 1; % skip ptb synctests
-% set(0,'units','centimeters');
-sz = get(0,'screensize'); sz = sz(3);
-p.screen_width = sz;% scale = 69.84/sz; % cbu mri = 698.4mm
-% p.screen_distance = 156.5/scale; clear sz scale; % cbu mri = 1565mm
-% p.screen_width = 69.84; % cbu mri = 698.4mm
+% p.ppi = 0; % will try to estimate with 0
 p.screen_distance = 50;%156.5; % cbu mri = 1565mm
+p.screen_width = 30;%69.84; % cbu mri = 698.4mm
 p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
@@ -52,8 +49,14 @@ p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-tmp.screen_distance = 50; tmp.screen_width = 33; tmp.resolution = [1366,768]; % approximation of jsPsych screen (after resizing to 150dpi)?
-p.stim_heights = [pix2angleJSCONV(tmp,100),pix2angleJSCONV(tmp,200),pix2angleJSCONV(tmp,300)]; % in visual angle
+tmpDist = 50; tmpPPU = 150/2.54; % old jsPsych distance and ppi->ppcm measurement
+p.stim_heights = [... % in visual angle
+    resizer(p,100,tmpDist,tmpPPU),...
+    resizer(p,200,tmpDist,tmpPPU),...
+    resizer(p,300,tmpDist,tmpPPU)]; clear tmpDist tmpPPU;
+% approximation of resizing to 150dpi
+angle pix2andResizer(p,100,50,150/2.54);
+% convert this to angle with screen distance of jsPsych (50)
 % not quite sure about this, but can do current ppi*stimHeightPixels/150 to
 % convert
 p.fixation_size = 40; % px
@@ -126,10 +129,10 @@ p.screens = Screen('Screens'); % funny difference pc to other oses, but doesn't 
 % draw to the external screen if available
 p.screen_num = max(p.screens);
 
-p.size_scales = {... % scales rows (y pixels), auto cols (x pixels) (i.e. maintain aspect ratio)
+p.size_scales = {... %  will feed imresize [rows (i.e. y pixels),cols (i.e. x pixels)] - NaNs mean auto (i.e. maintain aspect ratio
     [angle2pix(p,p.stim_heights(1)),NaN],...
     [angle2pix(p,p.stim_heights(2)),NaN],...
-    [angle2pix(p,p.stim_heights(3)),NaN]}; clear scaleFactor;
+    [angle2pix(p,p.stim_heights(3)),NaN]};
 
 p.black = BlackIndex(p.screen_num); % essentially [0 0 0]
 p.white = WhiteIndex(p.screen_num);
@@ -220,7 +223,7 @@ if ~strcmp(t.ok,'y'); error('no good'); end
 
 if p.autoTrain
     warning('you are autotraining - we will automatically do training and practice trials');
-    warning('there is a chance you will overwrite save files - it will not warn about existing files!');
+    warning('there is a chance you will overwrite save files, so check your business!');
     t.prompt = 'alright ([y]/n)?  ';
     t.ok = input(t.prompt,'s');
     if isempty(t.ok); t.ok = 'y'; end
@@ -277,12 +280,9 @@ try
         save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename,'_',d.attended_feature,'_',d.procedure_type];
         save_file = fullfile(savedir, save_file_name);
         if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
-            if p.autoTrain
-                p.practice = 0; % assumes this save file was a practice
-                t.num_blocks = p.num_blocks; % make sure the training/practice override isn't happening still
-                doProcedures = 1;
-            end
-            if ~continueOnFileExist || ~p.autoTrain % will skip if autotraining (and not a training trial)
+            p.practice = 0; % you might have already practiced
+            doProcedures = 1;
+            if ~continueOnFileExist % skip if autotraining
                 warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
                 while 1 % loop forever until y or n
                     ListenChar(2);
@@ -332,13 +332,12 @@ try
             t.training = 1;
             if p.scanning == 1; warning('you had p.scanning on, but this is a training block so im going to turn it off');t.scanning = 0; end
             t.training_type = d.attended_feature; % we're going to use a more legible name for this
-            t.num_blocks = p.num_training_blocks; % override num blocks
+            p.num_blocks = p.num_training_blocks; % override num blocks
             d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
         else
             t.training = 0;
-            t.num_blocks = p.num_blocks;
             if p.practice
-                t.num_blocks = p.num_training_blocks; % override num blocks
+                p.num_blocks = p.num_training_blocks; % override num blocks
                 if p.scanning == 1; warning('you had p.scanning on, but this is a practice block so im going to turn it off');t.scanning = 0; end
                 d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
             else t.scanning = p.scanning;
@@ -357,7 +356,7 @@ try
         % --- wait until TTL (this is after 4 dummy scans) ---
         if ~t.scanning %msg experimenter
             WaitSecs(0.1);
-            DrawFormattedText(p.win, 'Non-scan run: experimenter start when ready', 'center', 'center', p.text_colour);
+            DrawFormattedText(p.win, 'Dummy mode: press any key to start', 'center', 'center', p.text_colour);
             Screen('Flip', p.win);
             t.ts = Timestamp('Instruc press space onset', []);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
@@ -409,8 +408,8 @@ try
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         %% block loop
-        for block = 1:t.num_blocks
-            fprintf('block %u of %u\n',block,t.num_blocks ); % report trial number to command window
+        for block = 1:p.num_blocks
+            fprintf('block %u of %u\n',block,p.num_blocks ); % report trial number to command window
             t.ts = Timestamp(['Start of Block  ' d.procedure_type ' ' d.attended_feature], d.initTime, block );
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             % shuffle procedure
