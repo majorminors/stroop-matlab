@@ -6,8 +6,14 @@
 % oldDist                           old distance from screen
 % oldPPU                            old pixels per unit
 function ang = resizer(display,pix,oldDist,oldPPU)
+            
+thisPixSize = display.screen_width/display.resolution(1);
+thisPPU = display.resolution(1)/display.screen_width;
 
-sz = (display.screen_width)/display.window_size(1)*pix/oldPPU; % resize the pixel resolution to the size of the object 'pix' to the old pix per unit
+scaleFactor = thisPPU/oldPPU;
+pix = pix*scaleFactor; 
+
+sz = pix*thisPixSize; % resize the pixel resolution to the size of the object 'pix' to the old pix per unit
 ang = 2*180*atan(sz/(2*oldDist))/pi; % get the visual angle for the old distance
 
 return

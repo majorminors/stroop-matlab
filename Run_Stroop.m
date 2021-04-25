@@ -22,12 +22,13 @@ p.autoTrain = 1;
 % --- tech settings --- %
 p.testing_enabled = 1; % 1 will override some tech settings and replace with testing defaults (see defaults section)
 p.scanning = 1;
+p.tr = 1.208;
 p.buttonbox = 1; % or keyboard
 p.fullscreen_enabled = 1;
 p.skip_synctests = 1; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
-p.screen_distance = 50;%156.5; % cbu mri = 1565mm
-p.screen_width = 30;%69.84; % cbu mri = 698.4mm
+p.screen_distance = 156.5; % cbu mri = 1565mm
+p.screen_width = 69.84; % cbu mri = 698.4mm
 p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
@@ -36,13 +37,6 @@ p.num_blocks = 2;%10; % overridden to training blocks for training and practice 
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile) - hasty workaround for abstracting this script
-
-% --- set fMRI parameters --- %
-if p.scanning
-    p.tr = 1.208;                  % TR in s % CHANGE THIS LINE
-    % Initialise a scansync session
-    scansync('reset',p.tr);         % also needed to record button box responses
-end
 
 % keys
 p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
@@ -54,8 +48,6 @@ p.stim_heights = [... % in visual angle
     resizer(p,100,tmpDist,tmpPPU),...
     resizer(p,200,tmpDist,tmpPPU),...
     resizer(p,300,tmpDist,tmpPPU)]; clear tmpDist tmpPPU;
-% approximation of resizing to 150dpi
-angle pix2andResizer(p,100,50,150/2.54);
 % convert this to angle with screen distance of jsPsych (50)
 % not quite sure about this, but can do current ppi*stimHeightPixels/150 to
 % convert
@@ -351,6 +343,13 @@ try
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         WaitSecs(1); % so you hopefully don't have keys down!
         KbWait();
+        
+        
+        % --- set fMRI parameters --- %
+        if t.scanning                  % TR in s 
+            % Initialise a scansync session
+            scansync('reset',p.tr);         % also needed to record button box responses
+        end
         
         
         % --- wait until TTL (this is after 4 dummy scans) ---
