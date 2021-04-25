@@ -49,8 +49,14 @@ p.resp_keys = {'1!','2@','3#'}; % only accepts three response options
 p.quitkey = {'q'}; % keep this for vocal and manual
 
 % stimulus settings
-tmp.screen_distance = 50; tmp.screen_width = 33; tmp.resolution = [1366,768]; % approximation of jsPsych screen (after resizing to 150dpi)?
-p.stim_heights = [pix2angleJSCONV(tmp,100),pix2angleJSCONV(tmp,200),pix2angleJSCONV(tmp,300)]; % in visual angle
+tmpDist = 50; tmpPPU = 150/2.54; % old jsPsych distance and ppi->ppcm measurement
+p.stim_heights = [... % in visual angle
+    resizer(p,100,tmpDist,tmpPPU),...
+    resizer(p,200,tmpDist,tmpPPU),...
+    resizer(p,300,tmpDist,tmpPPU)]; clear tmpDist tmpPPU;
+% approximation of resizing to 150dpi
+angle pix2andResizer(p,100,50,150/2.54);
+% convert this to angle with screen distance of jsPsych (50)
 % not quite sure about this, but can do current ppi*stimHeightPixels/150 to
 % convert
 p.fixation_size = 40; % px
@@ -123,10 +129,10 @@ p.screens = Screen('Screens'); % funny difference pc to other oses, but doesn't 
 % draw to the external screen if available
 p.screen_num = max(p.screens);
 
-p.size_scales = {... % scales rows (y pixels), auto cols (x pixels) (i.e. maintain aspect ratio)
+p.size_scales = {... %  will feed imresize [rows (i.e. y pixels),cols (i.e. x pixels)] - NaNs mean auto (i.e. maintain aspect ratio
     [angle2pix(p,p.stim_heights(1)),NaN],...
     [angle2pix(p,p.stim_heights(2)),NaN],...
-    [angle2pix(p,p.stim_heights(3)),NaN]}; clear scaleFactor;
+    [angle2pix(p,p.stim_heights(3)),NaN]};
 
 p.black = BlackIndex(p.screen_num); % essentially [0 0 0]
 p.white = WhiteIndex(p.screen_num);
