@@ -5,7 +5,7 @@
 %% set up
 
 close all;
-clearvars;
+clear all;
 clc;
 
 fprintf('setting up %s\n', mfilename);
@@ -20,12 +20,12 @@ p.manual_stroop = 1;
 p.autoTrain = 1;
 
 % --- tech settings --- %
-p.testing_enabled = 1; % 1 will override some tech settings and replace with testing defaults (see defaults section)
+p.testing_enabled = 0; % 1 will override some tech settings and replace with testing defaults (see defaults section)
 p.scanning = 1;
 p.tr = 1.208;
 p.buttonbox = 1; % or keyboard
 p.fullscreen_enabled = 1;
-p.skip_synctests = 1; % skip ptb synctests
+p.skip_synctests = 0; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
 p.screen_distance = 156.5; % cbu mri = 1565mm
 p.screen_width = 69.84; % cbu mri = 698.4mm
@@ -192,19 +192,27 @@ end; clear imported;
 d.procedure = d.all_procedures(:,:,p.procedure_index);
 t.procedure_code = d.all_procedure_codes(p.procedure_index,:);
 d.attended_feature = t.procedure_code{1};
-d.procedure_type = t.procedure_code{2};
+d.stimulus_type = t.procedure_code{2};
 
 % do a lil check
 
 disp('procedure list: ');
 disp(d.all_procedure_codes);
 fprintf('you chose procedure %1.0f\n',p.procedure_index);
-fprintf('procedure type: %s\n',d.procedure_type);
+fprintf('stimulus type: %s\n',d.stimulus_type);
 fprintf('with attended feature: %s\n',d.attended_feature);
-if p.practice || strcmp(d.procedure_type,'training')
+if p.practice || strcmp(d.stimulus_type,'training')
     t.est_mins = (p.num_training_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
 else
     t.est_mins = (p.num_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
+end
+disp('you are saving into folder with contents:')
+ls([savedir,filesep,'*.mat']);
+if p.autoTrain
+    warning(sprintf([
+        'you are autotraining\n',...
+        'we will automatically do training and practice trials\n',...
+        'this assumes existing save files for this procedure are practices and overwrites them']));
 end
 fprintf('this will take about %1.0f mins (not accounting for feedback or loading)\n\n',t.est_mins);
 
@@ -212,15 +220,6 @@ t.prompt = 'look right ([y]/n)?  ';
 t.ok = input(t.prompt,'s');
 if isempty(t.ok); t.ok = 'y'; end
 if ~strcmp(t.ok,'y'); error('no good'); end
-
-if p.autoTrain
-    warning('you are autotraining - we will automatically do training and practice trials');
-    warning('there is a chance you will overwrite save files, so check your business!');
-    t.prompt = 'alright ([y]/n)?  ';
-    t.ok = input(t.prompt,'s');
-    if isempty(t.ok); t.ok = 'y'; end
-    if ~strcmp(t.ok,'y'); error('no good'); end
-end
 
 try
     %----------%
@@ -242,7 +241,6 @@ try
     % --- autotraining loop! --- %
     t.scanning = p.scanning; % we'll use this so we can change it in the loop
     doProcedures = 1;
-    continueOnFileExist = 0;
     forcePractice = 0;
     while doProcedures % a while loop so we can automatically do training/prac runs
         
@@ -252,13 +250,12 @@ try
             d.procedure = d.all_procedures(:,:,p.procedure_index);
             t.procedure_code = d.all_procedure_codes(p.procedure_index,:);
             d.attended_feature = t.procedure_code{1};
-            d.procedure_type = t.procedure_code{2};
+            d.stimulus_type = t.procedure_code{2};
             
-            if strcmp(d.procedure_type,'training') % if current procedure is training
+            if strcmp(d.stimulus_type,'training') % if current procedure is training
                 doProcedures = doProcedures+1;
                 p.procedure_index = p.procedure_index+1;
             elseif p.procedure_index > 1
-                continueOnFileExist = 1;
                 % if previous procedure was training (i.e. this one will be a practice)
                 if strcmp(d.all_procedure_codes{p.procedure_index-1,2},'training')
                     doProcedures = doProcedures+1;
@@ -269,29 +266,13 @@ try
         
         % --- create a save file name --- %
         
-        save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename,'_',d.attended_feature,'_',d.procedure_type];
+        save_file_name = [num2str(d.participant_id,'S%02d'),'_',t.exp_type,'_',mfilename,'_',d.attended_feature,'_',d.stimulus_type];
         save_file = fullfile(savedir, save_file_name);
-        if exist([save_file '.mat'],'file') % check if the file already exists and throw a warning if it does
+        if exist([save_file '.mat'],'file') % check if the file already exists to do stuff
             p.practice = 0; % you might have already practiced
-            doProcedures = 1;
-            if ~continueOnFileExist % skip if autotraining
-                warning('the following save file already exists - overwrite? (y/n)\n %s.mat', save_file);
-                while 1 % loop forever until y or n
-                    ListenChar(2);
-                    [secs,keyCode] = KbWait; % wait for response
-                    key_name = KbName(keyCode); % find out name of key that was pressed
-                    if strcmp(key_name, 'y')
-                        fprintf('instructed to overwrite:\n %s.mat\n overwriting and continuing with %s\n', save_file, mfilename)
-                        ListenChar(0);
-                        clear secs keyCode key_name
-                        break % break the loop and continue
-                    elseif strcmp(key_name, 'n')
-                        ListenChar(0);
-                        clear secs keyCode key_name
-                        error('instructed not to overwrite:\n %s.mat\n aborting %s\n', save_file, mfilename); % error out
-                    end
-                end % end response loop
-            end %end continueOnFileExist
+            if ~strcmp(d.stimulus_type,'training')
+                doProcedures = 1;
+            end
         elseif forcePractice
             p.practice = 1;
         end % end check save file exist
@@ -311,7 +292,7 @@ try
         d.results = cell(size(d.procedure,1),5,p.num_blocks); % initialise a results matrix the length of the trials
         % extra dimension for blocks deleted for practice and training
         d.results(:,1,:) = {d.attended_feature};
-        d.results(:,2,:) = {d.procedure_type};
+        d.results(:,2,:) = {d.stimulus_type};
         % 3) rt
         % 4) correct (meaningful only for manual, otherwise -2)
         % 5) stimulus index (to get from d.stimulus_matrix the stimulus information)
@@ -319,7 +300,7 @@ try
         
         % --- do some edits based on practice/training --- %
         
-        if strcmp(d.procedure_type,'training') % if it's a training trial
+        if strcmp(d.stimulus_type,'training') % if it's a training trial
             disp('training procedure')
             t.training = 1;
             if p.scanning == 1; warning('you had p.scanning on, but this is a training block so im going to turn it off');t.scanning = 0; end
@@ -346,7 +327,7 @@ try
         
         
         % --- set fMRI parameters --- %
-        if t.scanning                  % TR in s 
+        if t.scanning || p.buttonbox
             % Initialise a scansync session
             scansync('reset',p.tr);         % also needed to record button box responses
         end
@@ -380,7 +361,7 @@ try
         
         % --- do some instructions --- %
         
-        t.ts = Timestamp(['Instructions ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        t.ts = Timestamp(['Instructions ' d.stimulus_type ' ' d.attended_feature], d.initTime);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         if p.procedure_index == 1
@@ -391,7 +372,7 @@ try
         elseif strcmp(d.attended_feature,'size')
             do_instructions(p,'height')
         end
-        if strcmp(d.procedure_type,'training')
+        if strcmp(d.stimulus_type,'training')
             do_instructions(p,'training')
         else
             if p.practice
@@ -403,13 +384,13 @@ try
         
         % --- start procedure --- %
         
-        t.ts = Timestamp(['Start of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        t.ts = Timestamp(['Start of Procedure ' d.stimulus_type ' ' d.attended_feature], d.initTime);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         %% block loop
         for block = 1:p.num_blocks
             fprintf('block %u of %u\n',block,p.num_blocks ); % report trial number to command window
-            t.ts = Timestamp(['Start of Block  ' d.procedure_type ' ' d.attended_feature], d.initTime, block );
+            t.ts = Timestamp(['Start of Block  ' d.stimulus_type ' ' d.attended_feature], d.initTime, block );
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             % shuffle procedure
             d.procedure = NewShuffle(d.procedure,[2]); % shuffle rows independently on each page/third dimension (PTB shuffle (copied here as NewShuffle because one computer I was testing on had some old version?))
@@ -418,7 +399,7 @@ try
             for trial = 1:size(d.procedure,1)
                 if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
                 fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
-                t.ts = Timestamp(['Start of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                t.ts = Timestamp(['Start of Trial ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 t.this_trial = d.procedure(trial,:); % get the trial information
                 t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
@@ -469,7 +450,7 @@ try
                 
                 % then display cue
                 t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
-                t.ts = Timestamp(['Cue Onset ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                t.ts = Timestamp(['Cue Onset ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 if p.vocal_stroop
                     t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial)], 'savemode', 2);
@@ -566,7 +547,7 @@ try
                             t.feedback = 'invalid';
                         end
                     end
-                    t.ts = Timestamp(['Response ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                    t.ts = Timestamp(['Response ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                     
                     if t.training || p.practice
@@ -590,7 +571,7 @@ try
                 d.results(trial,6,block) = {t.this_size};
                 
                 % end trial
-                t.ts = Timestamp(['End of Trial ' d.procedure_type ' ' d.attended_feature], d.initTime, block, trial);
+                t.ts = Timestamp(['End of Trial ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 
                 %% post trial cleanup
@@ -610,12 +591,12 @@ try
             end
             
             save(save_file); % so we don't lose all data in a crash
-            t.ts = Timestamp(['End of Block ' d.procedure_type ' ' d.attended_feature], d.initTime);
+            t.ts = Timestamp(['End of Block ' d.stimulus_type ' ' d.attended_feature], d.initTime);
             d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
             
         end; clear block;
         save(save_file); % so we don't lose all data in a crash
-        t.ts = Timestamp(['End of Procedure ' d.procedure_type ' ' d.attended_feature], d.initTime);
+        t.ts = Timestamp(['End of Procedure ' d.stimulus_type ' ' d.attended_feature], d.initTime);
         d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
         
         
