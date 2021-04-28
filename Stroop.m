@@ -1,13 +1,12 @@
-function Stroop
+function [p,d] = Stroop(p,d,rootdir,stimdir,datadir)
 fprintf('setting up %s\n', mfilename);
-p = struct(); % est structure for parameter values
-d = struct(); % est structure for trial data
+
 t = struct(); % another structure for untidy temp floating variables
 
 % --- initial settings --- %
-rootdir = pwd; % root directory - used to inform directory mappings
-p.vocal_stroop = 0;
-p.manual_stroop = 1;
+% rootdir = pwd; % root directory - used to inform directory mappings
+% p.vocal_stroop = 0;
+% p.manual_stroop = 1;
 p.autoTrain = 1;
 
 % --- tech settings --- %
@@ -64,10 +63,10 @@ if ~p.buttonbox && p.scanning; error('you probably dont want to scan without the
 %-------------------%
 
 %if ispc; setenv('PATH',[getenv('PATH') ';C:\Program Files\MATLAB\R2018a\toolbox\CBSU\Psychtoolbox\3.0.14\PsychContributed\x64']); end % make sure psychtoolbox has all it's stuff on cbu pc
-addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
-stimdir = fullfile(rootdir, 'lib', 'stimuli');
-datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
-if ~exist(datadir,'dir'); mkdir(datadir); end
+% addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
+% stimdir = fullfile(rootdir, 'lib', 'stimuli');
+% datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
+% if ~exist(datadir,'dir'); mkdir(datadir); end
 
 %----------%
 % defaults %
@@ -129,17 +128,17 @@ p.text_size = 40; % size of text
 %-------------------%
 
 % set up participant info and save
-t.prompt = {'enter participant number:',...
-    'enter run/procedure number:',...
-    'is this a practice run? (1 or 0 + overridden during training)'}; % prompt a dialog to enter subject info
-t.prompt_defaultans = {num2str(99),num2str(1),num2str(1)}; % default answers corresponding to prompts
-t.prompt_rsp = inputdlg(t.prompt, 'enter participant info', 1, t.prompt_defaultans); % save dialog responses
-d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
-p.procedure_index = str2double(t.prompt_rsp{2}); % add the procedure index, so we can pull the trials from the procedure matrix later
-p.practice = str2double(t.prompt_rsp{3});
-
-% check participant info has been entered correctly for the script
-if isnan(d.participant_id); error('no participant number entered'); end
+% t.prompt = {'enter participant number:',...
+%     'enter run/procedure number:',...
+%     'is this a practice run? (1 or 0 + overridden during training)'}; % prompt a dialog to enter subject info
+% t.prompt_defaultans = {num2str(99),num2str(1),num2str(1)}; % default answers corresponding to prompts
+% t.prompt_rsp = inputdlg(t.prompt, 'enter participant info', 1, t.prompt_defaultans); % save dialog responses
+% d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
+% p.procedure_index = str2double(t.prompt_rsp{2}); % add the procedure index, so we can pull the trials from the procedure matrix later
+% p.practice = str2double(t.prompt_rsp{3});
+% 
+% % check participant info has been entered correctly for the script
+% if isnan(d.participant_id); error('no participant number entered'); end
 
 % code for save structure
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end

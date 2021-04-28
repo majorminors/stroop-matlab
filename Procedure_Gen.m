@@ -3,32 +3,31 @@
 % Created: JAN21
 % Last Edit: JAN21
 %% set up
-function Procedure_Gen
+function [p,d] = Procedure_Gen(p,d,rootdir,stimdir,datadir)
 fprintf('setting up %s\n', mfilename);
-p = struct(); % est structure for parameter values
-d = struct(); % est structure for trial data
+
 t = struct(); % another structure for untidy temp floating variables
 
 % initial settings
-rootdir = pwd; % root directory - used to inform directory mappings
-p.max_height = 600; % in rows for the largest size scale of images
-p.vocal_stroop = 0; 
-p.manual_stroop = 1;
+% rootdir = pwd; % root directory - used to inform directory mappings
+p.max_height = 600; % in rows
+% p.vocal_stroop = 0; 
+% p.manual_stroop = 1;
 
 % directory mapping
-addpath(genpath(fullfile(rootdir, 'lib'))); % add tools
-stimdir = fullfile(rootdir, 'lib', 'stimuli');
-datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
-if ~exist(datadir,'dir'); mkdir(datadir); end
+% addpath(genpath(fullfile(rootdir, 'lib'))); % add tools
+% stimdir = fullfile(rootdir, 'lib', 'stimuli');
+% datadir = fullfile(rootdir, 'data'); % will make a data directory if none exists
+% if ~exist(datadir,'dir'); mkdir(datadir); end
 
-% set up participant info and save
-t.prompt = {'enter participant number:'}; % prompt a dialog to enter subject info
-t.prompt_defaultans = {num2str(99)}; % default answers corresponding to prompts
-t.prompt_rsp = inputdlg(t.prompt, 'enter participant info', 1, t.prompt_defaultans); % save dialog responses
-d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
+% % set up participant info and save
+% t.prompt = {'enter participant number:'}; % prompt a dialog to enter subject info
+% t.prompt_defaultans = {num2str(99)}; % default answers corresponding to prompts
+% t.prompt_rsp = inputdlg(t.prompt, 'enter participant info', 1, t.prompt_defaultans); % save dialog responses
+% d.participant_id = str2double(t.prompt_rsp{1}); % add subject number to 'd'
 
-% check participant info has been entered correctly for the script
-if isnan(d.participant_id); error('no participant number entered'); end
+% % check participant info has been entered correctly for the script
+% if isnan(d.participant_id); error('no participant number entered'); end
 
 % create a structure for saving
 if p.vocal_stroop; t.exp_type = 'vocal'; elseif p.manual_stroop; t.exp_type = 'manual'; end
