@@ -3,11 +3,7 @@
 % Created: JAN21
 % Last Edit: JAN21
 %% set up
-
-close all;
-clearvars;
-clc;
-
+function Procedure_Gen
 fprintf('setting up %s\n', mfilename);
 p = struct(); % est structure for parameter values
 d = struct(); % est structure for trial data
@@ -215,3 +211,6 @@ disp(d.procedure_code)
 save(save_file); % save all data to a .mat file
 
 disp('done')
+
+return
+end
