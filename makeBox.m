@@ -6,7 +6,7 @@ p.screen_distance = 156.5; % cbu mri = 1565mm
 p.screen_width = 69.84; % cbu mri = 698.4mm
 p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
-p.fullscreen_enabled = 0;
+p.fullscreen_enabled = 1;
 
 % stimulus settings
 boxSize = 100;
@@ -17,6 +17,8 @@ boxResize = thisPPU*boxSize/150;
 % not quite sure about this, but can do current ppi*stimHeightPixels/150 to
 
 % --- screen stuff --- %
+
+Screen('Preference', 'SkipSyncTests', 1);
 
 % get the screen numbers
 p.screens = Screen('Screens'); % funny difference pc to other oses, but doesn't matter in cbu fMRI
@@ -45,15 +47,14 @@ try
     Screen('TextSize', p.win, p.text_size); % set the text size
     [p.xCenter, p.yCenter] = RectCenter(p.rect); % get the center
     HideCursor;
+    ListenChar(2);
     WaitSecs(0.5); % warm up
 
     baseRect = [0 0 boxResize boxResize];
-    centeredRect = CenterRectOnPointd(baseRect, xCenter, yCenter);
+    centeredRect = CenterRectOnPointd(baseRect, p.xCenter, p.yCenter);
     rectColor = [1 0 0];
     
-    % make the texture and draw it
-    t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
-    Screen('FillRect', window, rectColor, centeredRect);
+    Screen('FillRect', p.win, rectColor, centeredRect);
     
     % then display cue
     t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
@@ -64,11 +65,13 @@ try
     ShowCursor;
     clear ans; % clear extraneous stuff
     Screen('Close',p.win);
+    ListenChar(0);
     
     fprintf('done running %s\n', mfilename);
     
 catch err
     ShowCursor;
+    ListenChar(0);
     Screen('CloseAll');
     rethrow(err);
 end
