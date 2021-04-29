@@ -396,6 +396,7 @@ try
                 t.this_trial = d.procedure(trial,:); % get the trial information
                 t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
                 t.this_size = t.this_trial(2); % get the size of the trial
+                t.corr_size = p.sizes{t.this_size};
                 if t.training
                     if strcmp(t.training_type,'colour')
                         t.this_size = 2; % select medium size
@@ -542,15 +543,24 @@ try
                     t.ts = Timestamp(['Response ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                     
-                    if t.training || p.practice
-                        % display trialwise feedback
-                        DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
-                        Screen('Flip', p.win);
-                        WaitSecs(p.trial_feedback_time);
-                        Screen('Flip', p.win);
-                    end
-                    
                 end % end manual stroop coding
+                
+                if p.vocal_stroop % create feedback
+                    if strcmp(d.attended_feature, 'size')
+                        t.vocal_ans = t.corr_size;
+                    elseif strcmp(d.attended_feature, 'colour')
+                        t.vocal_ans = t.corr_colour;
+                    end
+                    t.feedback = ['correct answer was ',t.vocal_ans];
+                end
+                
+                if t.training || p.practice
+                    % display trialwise feedback
+                    DrawFormattedText(p.win, t.feedback, 'center', 'center', p.text_colour); % display feedback
+                    Screen('Flip', p.win);
+                    WaitSecs(p.trial_feedback_time);
+                    Screen('Flip', p.win);
+                end
                 
                 % collate the results
                 d.results(trial,3,block) = {t.rt};
@@ -571,11 +581,11 @@ try
             end; clear trial;
             
             % do blockwise feedback
-            if ~t.training && ~p.practice
+            if ~t.training && ~p.practice && ~p.vocal_stroop
                 t.percent_correct = round((sum(cell2mat(d.results(:,4,block)))/length(cell2mat(d.results(:,4,block))))*100);
                 t.pc_string = num2str(t.percent_correct);
                 t.block_feedback = ['You got ' t.pc_string '% correct!'];
-                % display trialwise feedback
+                % display feedback
                 DrawFormattedText(p.win, t.block_feedback, 'center', 'center', p.text_colour); % display feedback
                 Screen('Flip', p.win);
                 WaitSecs(p.block_feedback_time);
