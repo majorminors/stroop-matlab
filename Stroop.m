@@ -23,7 +23,7 @@ p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % block settings
-p.num_blocks = 2;%10; % overridden to training blocks for training and practice runs
+p.num_blocks = 10; % overridden to training blocks for training and practice runs
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile) - hasty workaround for abstracting this script
@@ -401,13 +401,13 @@ try
                     if strcmp(t.training_type,'colour')
                         t.this_size = 2; % select medium size
                         t.stimulus = cell2mat(d.training_stimuli(find(strcmp(p.colours(t.this_stim_idx),d.training_stimuli(:,1))),2));
-                        t.corr_colour = p.colours(t.this_stim_idx);
+                        t.corr_colour = cell2mat(p.colours(t.this_stim_idx));
                     elseif strcmp(t.training_type,'size')
                         t.stimulus = cell2mat(d.training_stimuli(find(strcmp(d.training_stimuli(:,1),'line')),2));
                     end
                 else
                     t.stimulus = cell2mat(d.stimulus_matrix(t.this_stim_idx,2));
-                    t.corr_colour = d.stimulus_matrix(t.this_stim_idx,5);
+                    t.corr_colour = cell2mat(d.stimulus_matrix(t.this_stim_idx,5));
                 end
                 
                 % resize based on the size required
