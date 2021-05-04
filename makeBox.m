@@ -3,15 +3,18 @@ rootdir = pwd; % root directory - used to inform directory mappings
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
 
 p.screen_distance = 156.5; % cbu mri = 1565mm
-p.screen_width = 69.84; % cbu mri = 698.4mm
+p.screen_width = q69.84; % cbu mri = 698.4mm
 p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 p.fullscreen_enabled = 1;
 
 % stimulus settings
+boxStim = imread('box.png');
 boxSize = 100;
 thisPPU = p.resolution(1)/p.screen_width;
-boxResize = thisPPU*boxSize/150;
+boxResize = thisPPU*boxSize/(150/2.54);
+newBox = imresize(boxStim,[boxResize,boxResize]);
+
 
 % convert this to angle with screen distance of jsPsych (50)
 % not quite sure about this, but can do current ppi*stimHeightPixels/150 to
@@ -54,7 +57,9 @@ try
     centeredRect = CenterRectOnPointd(baseRect, p.xCenter, p.yCenter);
     rectColor = [1 0 0];
     
-    Screen('FillRect', p.win, rectColor, centeredRect);
+    %Screen('FillRect', p.win, rectColor, centeredRect);
+    t.stim_tex = Screen('MakeTexture', p.win, newBox);
+    Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
     
     % then display cue
     t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
