@@ -97,6 +97,7 @@ end
 Screen('Flip',Win); %%flip off
 
 %%START OF BLOCK LOOP%%
+BlockEnd = [];
 for block = 1:TotalBlocks
     BlockTime=GetSecs-initTime; %%Timestamp
 %     if block > 1
@@ -175,10 +176,12 @@ for block = 1:TotalBlocks
 
         TrialEnd=GetSecs-initTime; %%Timestamp
 
-        fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
-            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'TrialNumber',trial,'TrialTime',TrialStart,'TrialEnd',TrialEnd,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
+        fprintf(fid,'%s \t %d \t %s \t %f \t %s \t %f \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t %s \t %d \t %s \t %f \t %s \t %s \t %s \t %s \t %s \t %f \t %s \t %f \t %s \t %f \t \n',...
+            'Subject',subjectno,'InitialTime', initTime,'BlockNumber',block,'BlockCondition',BlockCondition,'BlockTime',BlockTime,'BlockEnd',BlockEnd,'TrialNumber',trial,'TrialTime',TrialStart,'TrialEnd',TrialEnd,'ImageNumber',StrStim,'Dot',Dot,'StimulusOn',StimTimeOn,'StimulusOff',StimTimeOff,'ButtonPressed',aButtonPressed);
         
     end %%end trial loop
+    
+    BlockEnd = GetSecs-initTime; %% timestamp
     
 end %%end block loop
 
