@@ -1,4 +1,4 @@
-function BasicSoundInputDemo(wavfilename, voicetrigger, maxsecs)
+function getSoundInput(wavfilename, voicetrigger, maxsecs)
 % BasicSoundInputDemo([wavfilename] [, voicetrigger=0] [, maxsecs=1])
 %
 % Demonstrates very basic usage of the new Psychtoolbox sound driver
@@ -32,7 +32,7 @@ function BasicSoundInputDemo(wavfilename, voicetrigger, maxsecs)
 % 08/10/2008 Add some sound onset time calculation for the fun of it. (MK)
 
 % Running on PTB-3? Abort otherwise.
-AssertOpenGL;
+% AssertOpenGL;
 
 % Filename provided?
 if nargin < 1
@@ -57,7 +57,7 @@ end
 
 
 % Perform basic initialization of the sound driver:
-InitializePsychSound;
+% InitializePsychSound;
 
 % Open the default audio device [], with mode 2 (== Only audio capture),
 % and a required latencyclass of zero 0 == no low-latency mode, as well as
@@ -148,20 +148,6 @@ audiodata = PsychPortAudio('GetAudioData', pahandle);
 
 % Attach it to our full sound vector:
 recordedaudio = [recordedaudio audiodata];
-
-% Close the audio device:
-PsychPortAudio('Close', pahandle);
-
-% Replay recorded data: Open default device for output, push recorded sound
-% data into its output buffer:
-pahandle = PsychPortAudio('Open', [], 1, 0, 44100, 2);
-PsychPortAudio('FillBuffer', pahandle, recordedaudio);
-
-% Start playback immediately, wait for start, play once:
-PsychPortAudio('Start', pahandle, 1, 0, 1);
-
-% Wait for end of playback, then stop engine:
-PsychPortAudio('Stop', pahandle, 1);
 
 % Close the audio device:
 PsychPortAudio('Close', pahandle);

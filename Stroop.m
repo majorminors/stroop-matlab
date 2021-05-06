@@ -14,7 +14,7 @@ p.testing_enabled = 0; % 1 will override some tech settings and replace with tes
 p.scanning = 1;
 p.tr = 1.208;
 p.buttonbox = 1; % or keyboard
-p.fullscreen_enabled = 1;
+p.fullscreen_enabled = 0;
 p.skip_synctests = 0; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
 p.screen_distance = 156.5; % cbu mri = 1565mm
@@ -23,7 +23,7 @@ p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % block settings
-p.num_blocks = 10; % overridden to training blocks for training and practice runs
+p.num_blocks = 1; % overridden to training blocks for training and practice runs
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile) - hasty workaround for abstracting this script
@@ -101,6 +101,8 @@ Screen('Preference', 'Verbosity', p.PTBverbosity);
 if p.vocal_stroop
     InitializePsychSound;
     PsychPortAudio('Verbosity', 3);
+    % open the default audio device
+    p.pahandle    = PsychPortAudio('Open', [], 2, 0, 44100, 2);
 end
 
 % --- screen stuff --- %
@@ -389,10 +391,14 @@ try
             %% trial loop
             t.lastresp = NaN(1,4); % initialise this
             for trial = 1:size(d.procedure,1)
+                tic;disp('trial setup')
                 if trial == 1; WaitSecs(1); end % just put a bit of space between whatever happened before the first trial
+
                 fprintf('trial %u of %u\n',trial,size(d.procedure,1)); % report trial number to command window
                 t.ts = Timestamp(['Start of Trial ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+
+
                 t.this_trial = d.procedure(trial,:); % get the trial information
                 t.this_stim_idx = t.this_trial(1); % get the index of the stimulus for the trial
                 t.this_size = t.this_trial(2); % get the size of the trial
@@ -433,20 +439,26 @@ try
                 p.yCoords = [0 0 -p.fixation_size p.fixation_size];
                 p.allCoords = [p.xCoords; p.yCoords];
                 
+                toc
+                
+                tic;disp('fixation/iti')
                 Screen('DrawLines', p.win, p.allCoords, p.fixation_thickness, p.text_colour, [p.xCenter p.yCenter], 2);
                 Screen('Flip', p.win);
                 WaitSecs(p.iti_time);
-                
+                toc
                 % make the texture and draw it
+                tic;disp('texture for image')
                 t.stim_tex = Screen('MakeTexture', p.win, t.stimulus);
                 Screen('DrawTexture', p.win, t.stim_tex); % draws the cue
-                
+                toc
                 % then display cue
+                tic;disp('cue onset timestamp')
                 t.cue_onset = Screen('Flip', p.win); % pull the time of the screen flip from the flip function while flipping
                 t.ts = Timestamp(['Cue Onset ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
+                toc
                 if p.vocal_stroop
-                    t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial)], 'savemode', 2);
+                    t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial)], p.pahandle, 'savemode', 2);
                 elseif p.manual_stroop
                     if ~p.buttonbox
                         WaitSecs(p.trial_duration); % wait for trial
@@ -457,7 +469,7 @@ try
                     end
                 end
                 %% deal with response
-                
+                tic;disp('post trial actions')
                 % deal with keypress (required for both manual keyboard and quitkey in vocal or p.buttonbox)
                 [t.pressed,t.firstPress] = KbQueueCheck(); % check for keypress in the KbQueue
                 if t.pressed
@@ -472,6 +484,7 @@ try
                     fclose('all');
                     error('%s quit by user (p.quitkey pressed)\n', mfilename);
                 end
+
                 
                 if p.manual_stroop % code response
                     if p.buttonbox
@@ -544,7 +557,7 @@ try
                     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                     
                 end % end manual stroop coding
-                
+
                 if p.vocal_stroop % create feedback
                     if strcmp(d.attended_feature, 'size')
                         t.vocal_ans = t.corr_size;
@@ -561,6 +574,7 @@ try
                     WaitSecs(p.trial_feedback_time);
                     Screen('Flip', p.win);
                 end
+
                 
                 % collate the results
                 d.results(trial,3,block) = {t.rt};
@@ -571,13 +585,14 @@ try
                 end
                 d.results(trial,5,block) = {t.this_stim_idx};
                 d.results(trial,6,block) = {t.this_size};
-                
+
                 % end trial
                 t.ts = Timestamp(['End of Trial ' d.stimulus_type ' ' d.attended_feature], d.initTime, block, trial);
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
-                
+
                 %% post trial cleanup
                 KbQueueRelease();
+                toc
             end; clear trial;
             
             % do blockwise feedback
@@ -612,6 +627,11 @@ try
         doProcedures = doProcedures-1; %deiterate
     end % end autotrain while loop
     
+    if p.vocal_stroop
+        %% Close the audio device:
+        PsychPortAudio('Close', p.pahandle);
+    end
+    
     % tell them it's over
     DrawFormattedText(p.win,'this run is done!', 'center', 'center', p.text_colour); % tell them it's over!
     Screen('Flip', p.win);
@@ -629,6 +649,7 @@ try
 catch err
     save(save_file);
     KbQueueRelease(); % so we don't get warnings with listenchar etc
+    if p.vocal_stroop;PsychPortAudio('Close', p.pahandle);end
     ShowCursor;
     Screen('CloseAll');
     rethrow(err);
