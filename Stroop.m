@@ -250,8 +250,8 @@ try
             elseif p.procedure_index > 1
                 % if previous procedure was training (i.e. this one will be a practice)
                 if strcmp(d.all_procedure_codes{p.procedure_index-1,2},'training')
-                    doProcedures = doProcedures+1;
                     forcePractice = 1; % will only matter if there isn't a save file
+                    % we also add one to doProcedures if its a practice later at the training/practice edits
                 end
             end
         end
@@ -302,6 +302,7 @@ try
         else
             t.training = 0;
             if p.practice
+                if p.autoTrain; doProcedures = doProcedures+1; end % add one to the loop
                 t.num_blocks = p.num_training_blocks; % override num blocks
                 if p.scanning == 1; warning('you had p.scanning on, but this is a practice block so im going to turn it off');t.scanning = 0; end
                 d.results(:,:,2:end) = []; % delete the extra dimensions - only one for training
