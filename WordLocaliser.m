@@ -21,7 +21,7 @@ p.testing_enabled = 0; % this has it's own defaults - see defaults section
 % script looks in stimdir/{cellstring} for png stimuli
 p.tests = {'words','pseudowords','falsefonts'};
 
-p.saveFolderName = 'manual'; % saves in datadir>saveFoldername>S##
+p.saveFolderName = 'vocal'; % saves in datadir>saveFoldername>S##
 
 % set values for experiment (i.e. ~p.testing_enabled)
 p.fullscreen_enabled = 1;
@@ -225,7 +225,7 @@ try
         %%------------------------------------%%
         %% shuffle test order and begin tests %%
         %%------------------------------------%%
-        t.tests = NewShuffle(p.tests); % shuffle testInfo cols (keep rows)
+        t.tests = p.tests;%NewShuffle(p.tests); % shuffle testInfo cols (keep rows)
         
         for test = 1:length(t.tests)
 
@@ -360,7 +360,7 @@ try
         
     end; clear block
 
-    t.ts = wordLocTimestamp('Experiment end', d.initTime,block);
+    t.ts = wordLocTimestamp('Experiment end', d.initTime);
     d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
     
     % --- wrap up --- %
