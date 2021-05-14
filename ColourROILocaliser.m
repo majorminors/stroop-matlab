@@ -1,3 +1,4 @@
+function ColourROILocaliser()
 %%fMRI Localiser for colour ROI%%
 %%12.03.2017 Jade Jackson%%
 
@@ -5,10 +6,10 @@ clear all;
 % Screen('Preference', 'ConserveVRAM', 64)
 
 %% Disables Synchronisation %% Comment out for testing
-Screen('Preference', 'SkipSyncTests', 1);
+% Screen('Preference', 'SkipSyncTests', 1);
 
 % choose stroop type (will save in data>saveFolderName>participant #)
-saveFolderName = 'manual';
+saveFolderName = 'vocal';
 
 
 %% Are we scanning??
@@ -186,3 +187,5 @@ for block = 1:TotalBlocks
 end %%end block loop
 
 Screen('CloseAll')
+return
+end
