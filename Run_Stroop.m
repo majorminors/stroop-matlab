@@ -16,7 +16,7 @@ d = struct(); % est structure for trial data
 t = struct(); % another structure for untidy temp floating variables
 
 rootdir = pwd; % root directory - used to inform directory mappings
-p.vocal_stroop = 1; 
+p.vocal_stroop = 1;
 p.manual_stroop = 0;
 
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
