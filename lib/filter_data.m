@@ -51,7 +51,7 @@ if ~isempty(font)
     data = data(:,idx);
 end
 
-% filtered_data = data(1,:); % rt
-filtered_data = data(3,:); % accuracy
+filtered_data = data(1,:); % rt
+% filtered_data = data(3,:); % accuracy
 
 end
