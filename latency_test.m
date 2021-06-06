@@ -1,6 +1,14 @@
 % Script for playing and recording with PsychPortAudio
 
-clear
+close all;
+clearvars;
+clc;
+
+p = struct(); % est structure for parameter values
+d = struct(); % est structure for trial data
+t = struct(); % another structure for untidy temp floating variables
+
+rootdir = pwd; % root directory - used to inform directory mappings
 
 %% Parameters
 
@@ -9,15 +17,24 @@ verbose = 0;   % set to 0 to limit the verbosity from PsychPortAudio
 fs = 48000;    % samp freq in Hz
 reqLatency = 0; % latency desired (not sure of the unit, but I always use 0)
 bufferSize = 256; % in samples
-secondsToAllocate = 0.1; % recording buffer
+secondsToAllocate = 2; % recording buffer
+delayTime = 0.5; % amount of delay before playing sound
 
 channelsPlay = [1 2]; % that should be left-right with the built-in sound card
 channelsRec = 1; % that should also be the mic on a built-in sound card
 deviceID = -1; % -1 is default
 
-duration_s = 2;
+% duration_s = 2;
 %signalToPlay = 0.01*rand(duration_s*fs, 2);
-signalToPlay = psychwavread([ PsychtoolboxRoot 'PsychDemos' filesep 'SoundFiles' filesep 'phaser.wav']);
+signalToPlay(:,1) = audioread([ PsychtoolboxRoot 'PsychDemos' filesep 'SoundFiles' filesep 'phaser.wav']); % first channel
+signalToPlay(:,2) = audioread([ PsychtoolboxRoot 'PsychDemos' filesep 'SoundFiles' filesep 'phaser.wav']); % second channel
+
+% now let's fill the rest of the time with the delay
+delay = delayTime*fs;
+totalDuration = secondsToAllocate*fs;
+remainingTime = totalDuration-(delay+size(signalToPlay,1));
+signalToPlay(:,1) = [zeros(delay,1);signalToPlay(:,1);zeros(remainingTime,1)];
+signalToPlay(:,2) = [zeros(delay,1);signalToPlay(:,2);zeros(remainingTime,1)];
 
 %% Initialize psychtoolbox
     

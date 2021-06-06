@@ -11,15 +11,15 @@ p.autoTrain = 1;
 
 % --- tech settings --- %
 p.testing_enabled = 0; % 1 will override some tech settings and replace with testing defaults (see defaults section)
-p.scanning = 1;
+p.scanning = 0;
 p.tr = 1.208;
-p.buttonbox = 1; % or keyboard
+p.buttonbox = 0; % or keyboard
 p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
-p.screen_distance = 156.5; % cbu mri = 1565mm
-p.screen_width = 69.84; % cbu mri = 698.4mm
-p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
+p.screen_distance = 60;%156.5; % cbu mri = 1565mm
+p.screen_width = 30;%69.84; % cbu mri = 698.4mm
+p.resolution = [1280,1024];%[1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % block settings
@@ -35,8 +35,8 @@ p.quitkey = {'q'}; % keep this for vocal and manual
 % stimulus settings
 tmpDist = 60; tmpPPU = 150/2.54; % old jsPsych distance and ppi->ppcm measurement
 p.stim_heights = [... % in visual angle
-    resizer(p,100,tmpDist,tmpPPU),...
-    resizer(p,200,tmpDist,tmpPPU),...
+    resizer(p,50,tmpDist,tmpPPU),...
+    resizer(p,150,tmpDist,tmpPPU),...
     resizer(p,300,tmpDist,tmpPPU)]; clear tmpDist tmpPPU;
 % convert this to angle with screen distance of jsPsych (50)
 % not quite sure about this, but can do current ppi*stimHeightPixels/150 to
@@ -53,6 +53,7 @@ p.iti_time = 0.3; % inter trial inteval time
 p.trial_duration = 1.5; % seconds for the stimuli to be displayed
 p.trial_feedback_time = 0.5; % period to display feedback after response
 p.block_feedback_time = 1; % period to display feedback after block
+p.stimulus_time = 0.47; %time to display stimulus in seconds
 
 % --- some checks --- %
 if p.vocal_stroop && p.manual_stroop; error('you cannot do both vocal and manual stroop'); end
@@ -459,7 +460,7 @@ try
                 d.timestamps = [d.timestamps,t.ts]; % concatenate the timestamp to the timestamp structure
                 toc
                 if p.vocal_stroop
-                    t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial) '_' num2str(block)], p.pahandle, 'savemode', 2, 'screenflip', [p.win 0.25]);
+                    t.rt = getVoiceResponse(p.vocal_threshold, p.trial_duration, [save_file '_audio_' num2str(trial) '_' num2str(block)], p.pahandle, 'savemode', 2, 'screenflip', [p.win p.stimulus_time]);
                 elseif p.manual_stroop
                     if ~p.buttonbox
                         WaitSecs(p.trial_duration); % wait for trial
