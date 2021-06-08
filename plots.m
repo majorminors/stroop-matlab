@@ -16,7 +16,7 @@ t = struct(); % set up a structure for temp data
 
 % set up variables
 rootdir = pwd;
-datadir = fullfile(rootdir,'data/pilot_5');
+datadir = fullfile(rootdir,'data/behav_pilots');
 p.savefilename = 'processed_data';
 
 plotdir = fullfile(datadir,'plots');
@@ -26,23 +26,48 @@ end
 addpath(genpath(fullfile(rootdir, 'lib'))); % add libraries to path
 
 load(fullfile(datadir,p.savefilename),'d');
-alldata = d.testdata.allcodes;
-fffirst=[];
-sfirst=[];
+
+% reorder everything for the functions, since I'm reusing them instead of
+% writing them again
+data=[];
 for subj = 1:length(d.subjects)
-    subject(subj).data = d.subjects(subj).testdata.allcodes;
-    subject(subj).procedure = d.subjects(subj).procedure;
-    if strcmp(subject(subj).procedure{1,1}, 'size')
-        sfirst = [sfirst,subject(subj).data];
+    for trial = 1:size(d.subjects(subj).results,1)
+        thisData(1,trial) = d.subjects(subj).results{trial,5};
+        thisData(2,trial) = NaN;
+        if strcmp(d.subjects(subj).results{trial,9},'short')
+            thisData(3,trial) = 1;
+        elseif strcmp(d.subjects(subj).results{trial,9},'medium')
+            thisData(3,trial) = 2;
+        elseif strcmp(d.subjects(subj).results{trial,9},'tall')
+            thisData(3,trial) = 3;
+        end
+        if strcmp(d.subjects(subj).results{trial,7},'red')
+            thisData(4,trial) = 1;
+        elseif strcmp(d.subjects(subj).results{trial,7},'blue')
+            thisData(4,trial) = 2;
+        elseif strcmp(d.subjects(subj).results{trial,7},'green')
+            thisData(4,trial) = 3;
+        end
+        if strcmp(d.subjects(subj).results{trial,6},'congruent')
+            thisData(5,trial) = 1;
+        elseif strcmp(d.subjects(subj).results{trial,6},'incongruent')
+            thisData(5,trial) = 2;
+        end
+        if strcmp(d.subjects(subj).results{trial,1},'size')
+            thisData(6,trial) = 1;
+        elseif strcmp(d.subjects(subj).results{trial,1},'colour')
+            thisData(6,trial) = 2;
+        end
+        if strcmp(d.subjects(subj).results{trial,2},'falsefont')
+            thisData(7,trial) = 1;
+        elseif strcmp(d.subjects(subj).results{trial,2},'font')
+            thisData(7,trial) = 2;
+        end
     end
-    if strcmp(subject(subj).procedure{2,1},'falsefont')
-        fffirst = [fffirst,subject(subj).data];
-    end    
+    data=[data,thisData];
 end
 
-data = alldata;
-%data = fffirst;
-%data = sfirst;
+
 
 
 % Rows:
@@ -74,7 +99,17 @@ vars(4,:,1) = filter_data(data,[],[],'incongruent','colour','falsefont');
 labs(4) = {'incong falsefont'};
 vars(3,:,2) = filter_data(data,[],[],'congruent','sizes','falsefont');
 vars(4,:,2) = filter_data(data,[],[],'incongruent','sizes','falsefont');
-make_params_extended(vars,'accuracy',labs,[60 100]); % almost, but there appears to be an effect of incongruency in the colour baseline!
+make_params_extended(vars,'means',labs,[540,770]); % almost, but there appears to be an effect of incongruency in the colour baseline!
+
+
+clear vars labs cols;
+vars(1,:,1) = filter_data(data,[],[],'incongruent','colour','font')-filter_data(data,[],[],'congruent','colour','font');
+labs(1) = {'font'};
+vars(2,:,1) = filter_data(data,[],[],'incongruent','colour','falsefont')-filter_data(data,[],[],'congruent','colour','falsefont');
+labs(2) = {'falsefont'};
+vars(1,:,2) = filter_data(data,[],[],'incongruent','sizes','font')-filter_data(data,[],[],'congruent','sizes','falsefont');
+vars(2,:,2) = filter_data(data,[],[],'incongruent','sizes','falsefont')-filter_data(data,[],[],'congruent','sizes','falsefont');
+make_params_extended(vars,'means',labs, [-20,120]);
 
 
 clear vars labs cols;

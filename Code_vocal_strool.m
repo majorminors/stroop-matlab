@@ -23,10 +23,9 @@ thisDir = dir(datadir);
 subjectFolders = {thisDir.name};
 clear thisDir;
 
-removals = []; %init this
 for subjFolder = 1:numel(subjectFolders)
     
-    if ~startsWith(subjectFolders(subjFolder), 'S') || startsWith(subjectFolders(subjFolder), 'S02')
+    if ~startsWith(subjectFolders(subjFolder), 'S') %|| startsWith(subjectFolders(subjFolder), 'S02')
         continue % skip . and .. results from dir
     end
     
@@ -52,10 +51,10 @@ for subjFolder = 1:numel(subjectFolders)
     
     % now some filtering
     
-    sizes = strcmp(d.subjects(subjFolder).results(:,1),'size').*~strcmp(d.subjects(subjFolder).results(:,2),'training');
-    colours = strcmp(d.subjects(subjFolder).results(:,1),'colour').*~strcmp(d.subjects(subjFolder).results(:,2),'training');
-    congruents= strcmp(d.subjects(subjFolder).results(:,6),'congruent').*~strcmp(d.subjects(subjFolder).results(:,2),'training');
-    incongruents = strcmp(d.subjects(subjFolder).results(:,6),'incongruent').*~strcmp(d.subjects(subjFolder).results(:,2),'training');
+    sizes = strcmp(d.subjects(subjFolder).results(:,1),'size');%.*~strcmp(d.subjects(subjFolder).results(:,2),'training');
+    colours = strcmp(d.subjects(subjFolder).results(:,1),'colour');%.*~strcmp(d.subjects(subjFolder).results(:,2),'training');
+    congruents= strcmp(d.subjects(subjFolder).results(:,6),'congruent');%.*~strcmp(d.subjects(subjFolder).results(:,2),'training');
+    incongruents = strcmp(d.subjects(subjFolder).results(:,6),'incongruent');%.*~strcmp(d.subjects(subjFolder).results(:,2),'training');
     fonts = strcmp(d.subjects(subjFolder).results(:,2),'font');
     falsefonts = strcmp(d.subjects(subjFolder).results(:,2),'falsefont');
     
@@ -84,12 +83,13 @@ for subjFolder = 1:numel(subjectFolders)
     
 end
 
-% this will not work properly. needs a while loop
+removeThese=[];
 for subj = 1:numel(d.subjects)
     if isempty(d.subjects(subj).results)
-        d.subjects(subj)=[];
+        removeThese=[removeThese,subj];
     end
 end
+d.subjects(removeThese)=[]; clear removeThese
 
 jaspitup(datadir,'rts',d);
 jaspitup(datadir,'incong-cong-rts',d);
@@ -149,7 +149,7 @@ function existingResults = getAltOnsets(existingResults,altResults)
 
 for existingTrial = 1:size(existingResults,1)
     
-    if existingResults{existingTrial,5} == -99
+    if existingResults{existingTrial,5} == -99 || existingResults{existingTrial,5} < 300
         
         for searchidx = 1:size(altResults,1) % loop through alt results for matching
             

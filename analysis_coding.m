@@ -29,7 +29,7 @@ for i = 1:numel(fileNames)
     
     thisName = regexp(fileNames{i}, '_', 'split');
     
-    if startsWith(thisName(1),'S') && ~any(contains(thisName,'Procedure')) && ~any(contains(thisName,'.wav'))
+    if startsWith(thisName(1),'S') && ~any(contains(thisName,'Procedure')) && ~any(contains(thisName,'training')) && ~any(contains(thisName,'.wav'))
         
         task = cellstr(thisName{4}); % task
         stim = regexp(thisName{5},'.mat','split'); % stimulus
@@ -53,9 +53,10 @@ for i = 1:numel(fileNames)
                     tmpResults(trial,3,block),... % rt
                     tmpStimMat(stimIdx,4),... % congruency
                     tmpStimMat(stimIdx,5),... % word
-                    tmpStimMat(stimIdx,6)]; % ink
+                    tmpStimMat(stimIdx,6),... % ink
+                    tmpResults(trial,6,block)]; % size
                 
-                
+            
             end; clear trial
         end; clear block
     end
@@ -92,26 +93,6 @@ disp('done coding subject');
 % fprintf('saving output from %s\n', mfilename);
 % save(save_file,'d'); % save all data to a .mat file
 
-    function filtered_data = filter_data(data,filter)
-        
-        switch filter
-            case 'congruent'
-                idx = find(data(6,:) == 1); % congruent
-            case 'incongruent'
-                idx = find(data(6,:) == 2); % incongruent
-            case 'sizes'
-                idx = find(data(7,:) == 1); % size info
-            case 'colour'
-                idx = find(data(7,:) == 2); % colour info
-            case 'falsefont'
-                idx = find(data(8,:) == 1); % print info
-            case 'font'
-                idx = find(data(8,:) == 2); % print info
-        end
-        
-        filtered_data = data(:,idx);
-        
-    end
 
     function accuracy = accthis(data)
         accuracy = sum(data)/length(data);
