@@ -1,4 +1,4 @@
-function [resptime,respnumber,daqret] = scansync(ind,waituntil,screenInfo)
+function [resptime,respnumber,daqret] = scansync(ind,waituntil)
 % synchronise with volume acquisition trigger pulses and record button 
 % presses from CBU National Instruments MRI scanner interface.
 %
@@ -72,12 +72,6 @@ if ~exist('waituntil','var') || isempty(waituntil) || isnan(waituntil)
 end
 assert(~isinf(waituntil) || ~isempty(ind), ...
     'unspecified channel index must be combined with finite waituntil duration')
-
-if exist('screenInfo','var')
-    flip = 1;
-else
-    flip = 0;
-end
 
 if ischar(ind) && strcmpi(ind,'reset')
     % don't handle conflicting inputs
@@ -166,13 +160,6 @@ while (GetSecs < waituntil) && all(isnan(daqstate.thisresp(ind)))
     % avoid choking the CPU, but don't wait so long that we might miss a pulse
     WaitSecs(0.001);
     daqstate = checkdaq(daqstate);
-    
-    if flip == 1
-        if GetSecs < screenInfo(2)
-            Screen('Flip', screenInfo(1))
-            flip = 0;
-        end
-    end
 end
 
 % so now this will be NaN if no responses happened, or otherwise not nan. Note

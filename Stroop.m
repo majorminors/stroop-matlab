@@ -11,19 +11,19 @@ p.autoTrain = 1;
 
 % --- tech settings --- %
 p.testing_enabled = 0; % 1 will override some tech settings and replace with testing defaults (see defaults section)
-p.scanning = 0;
+p.scanning = 1;
 p.tr = 1.208;
-p.buttonbox = 0; % or keyboard
+p.buttonbox = 1; % or keyboard
 p.fullscreen_enabled = 1;
 p.skip_synctests = 0; % skip ptb synctests
 % p.ppi = 0; % will try to estimate with 0
-p.screen_distance = 60;%156.5; % cbu mri = 1565mm
-p.screen_width = 30;%69.84; % cbu mri = 698.4mm
-p.resolution = [1280,1024];%[1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
+p.screen_distance = 156.5; % cbu mri = 1565mm
+p.screen_width = 69.84; % cbu mri = 698.4mm
+p.resolution = [1920,1080]; % cbu mri = [1920,1080] (but not actual I think)
 p.window_size = [0 0 1200 800]; % size of window when ~p.fullscreen_enabled
 
 % block settings
-p.num_blocks = 6; % overridden to training blocks for training and practice runs
+p.num_blocks = 10; % overridden to training blocks for training and practice runs
 p.num_training_blocks = 1; % will override num_blocks during training and practice
 
 proc_scriptname = 'Procedure_Gen'; % name of script that generated stimulus and procedure matrices (appended as mfilename to participant savefile) - hasty workaround for abstracting this script
@@ -194,10 +194,16 @@ disp(d.all_procedure_codes);
 fprintf('you chose procedure %1.0f\n',p.procedure_index);
 fprintf('stimulus type: %s\n',d.stimulus_type);
 fprintf('with attended feature: %s\n',d.attended_feature);
+t.est_prac_mins = (p.num_training_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
+t.est_test_mins = (p.num_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
 if p.practice || strcmp(d.stimulus_type,'training')
-    t.est_mins = (p.num_training_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
+    if p.autoTrain
+        t.est_mins = (t.est_prac_mins*2)+t.est_test_mins; % since autotraining does both the 1d training and the pre-test training before running the test
+    else
+        t.est_mins = t.est_prac_mins;
+    end
 else
-    t.est_mins = (p.num_blocks*size(d.procedure,1)*(p.iti_time+p.trial_duration))/60; % (blocks*trials*(iti time + trial time))/60 - estimated mins
+    t.est_mins = t.est_test_mins;
 end
 disp('you are saving into folder with contents:')
 ls([savedir,filesep,'*.mat']);
@@ -466,7 +472,7 @@ try
                         WaitSecs(p.trial_duration); % wait for trial
                     else
                         t.timenow = GetSecs;
-                        [~,~,t.out] = scansync([],t.timenow+p.trial_duration);
+                        [~,~,t.out] = scansync([],t.timenow+p.trial_duration,[p.win t.timenow+p.stimulus_time]);
                         t.thisresp = t.out.lastresp(2:5);
                     end
                 end
