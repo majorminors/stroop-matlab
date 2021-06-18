@@ -21,7 +21,7 @@ p.testing_enabled = 0; % this has it's own defaults - see defaults section
 % script looks in stimdir/{cellstring} for png stimuli
 p.tests = {'words','pseudowords','falsefonts'};
 
-p.saveFolderName = 'vocal'; % saves in datadir>saveFoldername>S##
+p.saveFolderName = 'manual'; % saves in datadir>saveFoldername>S##
 
 % set values for experiment (i.e. ~p.testing_enabled)
 p.fullscreen_enabled = 1;

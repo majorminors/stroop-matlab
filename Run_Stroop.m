@@ -8,7 +8,7 @@
 %% set up
 
 close all;
-clearvars;
+clear all;
 clc;
 
 p = struct(); % est structure for parameter values
@@ -16,8 +16,8 @@ d = struct(); % est structure for trial data
 t = struct(); % another structure for untidy temp floating variables
 
 rootdir = pwd; % root directory - used to inform directory mappings
-p.vocal_stroop = 1;
-p.manual_stroop = 0;
+p.vocal_stroop = 0;
+p.manual_stroop = 1;
 
 addpath(genpath(fullfile(rootdir, 'lib'))); % add tools folder to path
 stimdir = fullfile(rootdir, 'lib', 'stimuli');

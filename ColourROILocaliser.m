@@ -9,7 +9,7 @@ clear all;
 % Screen('Preference', 'SkipSyncTests', 1);
 
 % choose stroop type (will save in data>saveFolderName>participant #)
-saveFolderName = 'vocal';
+saveFolderName = 'manual';
 
 
 %% Are we scanning??
